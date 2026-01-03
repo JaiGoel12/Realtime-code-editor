@@ -48,12 +48,28 @@ io.on('connection', (socket) => {
         });
     });
 
-    socket.on(ACTIONS.CODE_CHANGE, ({ roomId, code }) => {
-        socket.in(roomId).emit(ACTIONS.CODE_CHANGE, { code });
+    socket.on(ACTIONS.CODE_CHANGE, ({ roomId, from, to, text, removed }) => {
+        // Broadcast incremental change to all other clients in the room
+        socket.in(roomId).emit(ACTIONS.CODE_CHANGE, {
+            from,
+            to,
+            text,
+            removed,
+        });
+    });
+
+    socket.on(ACTIONS.CURSOR_POSITION, ({ roomId, cursor }) => {
+        // Broadcast cursor position to all other clients in the room
+        socket.in(roomId).emit(ACTIONS.CURSOR_UPDATE, {
+            socketId: socket.id,
+            cursor,
+            username: userSocketMap[socket.id],
+        });
     });
 
     socket.on(ACTIONS.SYNC_CODE, ({ socketId, code }) => {
-        io.to(socketId).emit(ACTIONS.CODE_CHANGE, { code });
+        // Send full code to newly joined user
+        io.to(socketId).emit(ACTIONS.SYNC_CODE, { code });
     });
 
     socket.on('disconnecting', () => {
