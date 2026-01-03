@@ -1,15 +1,30 @@
 import React, { useState, useEffect } from 'react';
 
 const ConnectionStatus = ({ socketRef }) => {
-    const [isConnected, setIsConnected] = useState(false);
+    const [isConnected, setIsConnected] = useState(true); // Default to true, will update when socket is ready
 
     useEffect(() => {
-        if (!socketRef.current) return;
+        if (!socketRef.current) {
+            // Poll until socket is available
+            const interval = setInterval(() => {
+                if (socketRef.current) {
+                    clearInterval(interval);
+                    const updateStatus = () => {
+                        setIsConnected(socketRef.current?.connected || false);
+                    };
+                    updateStatus();
+                    socketRef.current.on('connect', updateStatus);
+                    socketRef.current.on('disconnect', updateStatus);
+                }
+            }, 100);
+            return () => clearInterval(interval);
+        }
 
         const updateStatus = () => {
             setIsConnected(socketRef.current?.connected || false);
         };
 
+        // Check initial status
         updateStatus();
 
         socketRef.current.on('connect', updateStatus);

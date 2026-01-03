@@ -121,22 +121,114 @@ const EditorPage = () => {
             return;
         }
 
-        // Simple formatting for JSON
+        let formatted = code;
+        let success = false;
+
+        // Format based on language
         if (language === 'json') {
             try {
                 const parsed = JSON.parse(code);
-                const formatted = JSON.stringify(parsed, null, 2);
-                if (editorRef.current) {
-                    editorRef.current.setValue(formatted);
-                    handleCodeChange(formatted);
-                    toast.success('Code formatted!');
-                }
+                formatted = JSON.stringify(parsed, null, 2);
+                success = true;
             } catch (e) {
                 toast.error('Invalid JSON');
+                return;
             }
+        } else if (language === 'javascript' || language === 'typescript') {
+            // Basic JavaScript/TypeScript formatting - indent properly
+            formatted = formatJavaScript(code);
+            success = true;
+        } else if (language === 'html') {
+            // Basic HTML formatting
+            formatted = formatHTML(code);
+            success = true;
+        } else if (language === 'css') {
+            // Basic CSS formatting
+            formatted = formatCSS(code);
+            success = true;
         } else {
-            toast.info('Auto-formatting available for JSON. Other languages coming soon!');
+            // For other languages, do basic indentation
+            formatted = formatBasic(code);
+            success = true;
         }
+
+        if (success && editorRef.current) {
+            editorRef.current.setValue(formatted);
+            handleCodeChange(formatted);
+            toast.success('Code formatted!');
+        }
+    };
+
+    // Basic formatting functions
+    const formatJavaScript = (code) => {
+        // Simple indentation fix
+        const lines = code.split('\n');
+        let indent = 0;
+        const indentSize = 4;
+        return lines.map(line => {
+            const trimmed = line.trim();
+            if (trimmed === '') return '';
+            
+            // Decrease indent for closing braces/brackets
+            if (trimmed.endsWith('}') || trimmed.endsWith(']') || trimmed.endsWith(')')) {
+                indent = Math.max(0, indent - 1);
+            }
+            
+            const formatted = ' '.repeat(indent * indentSize) + trimmed;
+            
+            // Increase indent for opening braces/brackets
+            if (trimmed.endsWith('{') || trimmed.endsWith('[') || trimmed.endsWith('(')) {
+                indent++;
+            }
+            
+            return formatted;
+        }).join('\n');
+    };
+
+    const formatHTML = (code) => {
+        // Basic HTML indentation
+        const lines = code.split('\n');
+        let indent = 0;
+        return lines.map(line => {
+            const trimmed = line.trim();
+            if (trimmed === '') return '';
+            
+            if (trimmed.startsWith('</')) {
+                indent = Math.max(0, indent - 1);
+            }
+            
+            const formatted = ' '.repeat(indent * 2) + trimmed;
+            
+            if (trimmed.startsWith('<') && !trimmed.startsWith('</') && !trimmed.endsWith('/>')) {
+                indent++;
+            }
+            
+            return formatted;
+        }).join('\n');
+    };
+
+    const formatCSS = (code) => {
+        // Basic CSS formatting
+        let formatted = code
+            .replace(/\s*{\s*/g, ' {\n    ')
+            .replace(/\s*}\s*/g, '\n}\n')
+            .replace(/\s*;\s*/g, ';\n    ')
+            .replace(/\s*:\s*/g, ': ');
+        
+        // Clean up extra newlines
+        formatted = formatted.replace(/\n\s*\n/g, '\n');
+        return formatted.trim();
+    };
+
+    const formatBasic = (code) => {
+        // Basic indentation for any language
+        const lines = code.split('\n');
+        let indent = 0;
+        return lines.map(line => {
+            const trimmed = line.trim();
+            if (trimmed === '') return '';
+            return ' '.repeat(indent * 4) + trimmed;
+        }).join('\n');
     };
 
     if (!location.state) {
@@ -242,27 +334,6 @@ const EditorPage = () => {
                     flexDirection: 'column',
                     gap: '12px'
                 }}>
-                    <div style={{
-                        padding: '12px',
-                        borderRadius: '8px',
-                        background: 'rgba(74, 237, 136, 0.1)',
-                        border: '1px solid rgba(74, 237, 136, 0.3)'
-                    }}>
-                        <div style={{
-                            fontSize: '11px',
-                            color: '#888',
-                            marginBottom: '6px',
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.5px'
-                        }}>Room ID</div>
-                        <div style={{
-                            fontSize: '13px',
-                            color: '#4aed88',
-                            fontFamily: 'monospace',
-                            fontWeight: '600',
-                            wordBreak: 'break-all'
-                        }}>{roomId}</div>
-                    </div>
                     <button
                         onClick={copyRoomId}
                         style={{
