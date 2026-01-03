@@ -28,8 +28,8 @@ const Editor = ({ socketRef, roomId, onCodeChange, username }) => {
             );
 
             // Handle local changes - send incremental updates
-            editorRef.current.on('change', (instance, changes) => {
-                const { origin } = changes;
+            editorRef.current.on('change', (instance, changeObj) => {
+                const { origin } = changeObj;
                 
                 // Ignore changes from remote updates
                 if (isRemoteChangeRef.current || origin === 'setValue') {
@@ -38,30 +38,30 @@ const Editor = ({ socketRef, roomId, onCodeChange, username }) => {
 
                 // Make sure socket is available
                 if (!socketRef.current || !socketRef.current.connected) {
+                    console.warn('Socket not connected, cannot send changes');
                     return;
                 }
 
                 const code = instance.getValue();
                 onCodeChange(code);
 
-                // Send incremental change
-                changes.forEach((change) => {
-                    // Convert CodeMirror positions to plain objects
-                    const from = { line: change.from.line, ch: change.from.ch };
-                    const to = { line: change.to.line, ch: change.to.ch };
-                    const text = change.text.join('\n');
-                    const removed = change.removed.join('\n');
+                // CodeMirror change object structure
+                // changeObj has: from, to, text (array), removed (array), origin
+                const from = { line: changeObj.from.line, ch: changeObj.from.ch };
+                const to = { line: changeObj.to.line, ch: changeObj.to.ch };
+                const text = changeObj.text.join('\n');
+                const removed = changeObj.removed.join('\n');
 
-                    if (socketRef.current && socketRef.current.connected) {
-                        socketRef.current.emit(ACTIONS.CODE_CHANGE, {
-                            roomId,
-                            from,
-                            to,
-                            text,
-                            removed,
-                        });
-                    }
-                });
+                if (socketRef.current && socketRef.current.connected) {
+                    console.log('Sending change:', { from, to, text: text.substring(0, 20) });
+                    socketRef.current.emit(ACTIONS.CODE_CHANGE, {
+                        roomId,
+                        from,
+                        to,
+                        text,
+                        removed,
+                    });
+                }
             });
 
             // Track cursor position and send updates
@@ -88,23 +88,25 @@ const Editor = ({ socketRef, roomId, onCodeChange, username }) => {
         init();
     }, []);
 
-    // Set up socket listeners - this should run whenever socket is available
+    // Set up socket listeners - use a polling approach to check when socket is ready
     useEffect(() => {
-        if (!socketRef.current) return;
-
-        // Wait for socket to be connected
-        const setupListeners = () => {
-            if (!socketRef.current || !socketRef.current.connected) {
-                return;
+        const setupSocketListeners = () => {
+            if (!socketRef.current || !editorRef.current) {
+                return false;
             }
 
             // Handle remote code changes - apply at specific positions
             const handleCodeChange = ({ from, to, text, removed }) => {
-                if (!editorRef.current) return;
+                if (!editorRef.current) {
+                    console.warn('Editor not ready for remote change');
+                    return;
+                }
                 if (!from || !to) {
                     console.error('Invalid change data:', { from, to, text, removed });
                     return;
                 }
+
+                console.log('Receiving change:', { from, to, text: text ? text.substring(0, 20) : 'empty' });
 
                 isRemoteChangeRef.current = true;
 
@@ -124,8 +126,6 @@ const Editor = ({ socketRef, roomId, onCodeChange, username }) => {
 
                 isRemoteChangeRef.current = false;
             };
-
-            socketRef.current.on(ACTIONS.CODE_CHANGE, handleCodeChange);
 
             // Handle remote cursor positions
             const handleCursorUpdate = ({ socketId, cursor, username: remoteUsername }) => {
@@ -159,7 +159,6 @@ const Editor = ({ socketRef, roomId, onCodeChange, username }) => {
                     console.error('Error creating cursor marker:', error);
                 }
             };
-            socketRef.current.on(ACTIONS.CURSOR_UPDATE, handleCursorUpdate);
 
             // Handle full code sync (for new users joining)
             const handleSyncCode = ({ code }) => {
@@ -169,7 +168,6 @@ const Editor = ({ socketRef, roomId, onCodeChange, username }) => {
                 onCodeChange(code);
                 isRemoteChangeRef.current = false;
             };
-            socketRef.current.on(ACTIONS.SYNC_CODE, handleSyncCode);
 
             // Handle user disconnection - clean up their cursor
             const handleDisconnected = ({ socketId }) => {
@@ -182,27 +180,54 @@ const Editor = ({ socketRef, roomId, onCodeChange, username }) => {
                     delete remoteCursorsRef.current[socketId];
                 }
             };
+
+            // Remove existing listeners to avoid duplicates
+            socketRef.current.off(ACTIONS.CODE_CHANGE);
+            socketRef.current.off(ACTIONS.CURSOR_UPDATE);
+            socketRef.current.off(ACTIONS.SYNC_CODE);
+            socketRef.current.off(ACTIONS.DISCONNECTED);
+
+            // Set up all listeners
+            socketRef.current.on(ACTIONS.CODE_CHANGE, handleCodeChange);
+            socketRef.current.on(ACTIONS.CURSOR_UPDATE, handleCursorUpdate);
+            socketRef.current.on(ACTIONS.SYNC_CODE, handleSyncCode);
             socketRef.current.on(ACTIONS.DISCONNECTED, handleDisconnected);
+
+            console.log('Socket listeners set up successfully');
+            return true;
         };
 
-        // Try to set up listeners immediately if socket is connected
-        if (socketRef.current.connected) {
-            setupListeners();
-        } else {
-            // Wait for connection
-            socketRef.current.on('connect', setupListeners);
+        // Try to set up listeners immediately
+        if (setupSocketListeners()) {
+            return;
+        }
+
+        // If not ready, poll every 100ms until socket and editor are ready
+        const interval = setInterval(() => {
+            if (setupSocketListeners()) {
+                clearInterval(interval);
+            }
+        }, 100);
+
+        // Also try when socket connects
+        const onConnect = () => {
+            setupSocketListeners();
+        };
+        if (socketRef.current) {
+            socketRef.current.on('connect', onConnect);
         }
 
         return () => {
+            clearInterval(interval);
             if (socketRef.current) {
+                socketRef.current.off('connect', onConnect);
                 socketRef.current.off(ACTIONS.CODE_CHANGE);
                 socketRef.current.off(ACTIONS.CURSOR_UPDATE);
                 socketRef.current.off(ACTIONS.SYNC_CODE);
                 socketRef.current.off(ACTIONS.DISCONNECTED);
-                socketRef.current.off('connect', setupListeners);
             }
         };
-    }, [socketRef, roomId, onCodeChange]);
+    }, [roomId, onCodeChange]);
 
     // Cleanup cursor markers on unmount
     useEffect(() => {

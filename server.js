@@ -49,6 +49,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on(ACTIONS.CODE_CHANGE, ({ roomId, from, to, text, removed }) => {
+        console.log('Received CODE_CHANGE from', socket.id, 'in room', roomId);
         // Broadcast incremental change to all other clients in the room
         socket.in(roomId).emit(ACTIONS.CODE_CHANGE, {
             from,
@@ -56,6 +57,7 @@ io.on('connection', (socket) => {
             text,
             removed,
         });
+        console.log('Broadcasted CODE_CHANGE to room', roomId);
     });
 
     socket.on(ACTIONS.CURSOR_POSITION, ({ roomId, cursor }) => {
