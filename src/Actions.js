@@ -7,6 +7,7 @@ const ACTIONS = {
     LEAVE: 'leave',
     CURSOR_POSITION: 'cursor-position',
     CURSOR_UPDATE: 'cursor-update',
+    LANGUAGE_CHANGE: 'language-change',
 };
 
 module.exports = ACTIONS;

@@ -2,13 +2,29 @@ import React, { useEffect, useRef } from 'react';
 import Codemirror from 'codemirror';
 import 'codemirror/lib/codemirror.css';
 import 'codemirror/theme/dracula.css';
+
+// Import language modes
 import 'codemirror/mode/javascript/javascript';
+import 'codemirror/mode/python/python';
+import 'codemirror/mode/clike/clike'; // For C, C++, Java
+import 'codemirror/mode/htmlmixed/htmlmixed';
+import 'codemirror/mode/css/css';
+import 'codemirror/mode/xml/xml';
+import 'codemirror/mode/sql/sql';
+import 'codemirror/mode/php/php';
+import 'codemirror/mode/ruby/ruby';
+import 'codemirror/mode/go/go';
+import 'codemirror/mode/rust/rust';
+import 'codemirror/mode/swift/swift';
+
 import 'codemirror/addon/edit/closetag';
 import 'codemirror/addon/edit/closebrackets';
 import 'codemirror/addon/display/placeholder';
 import ACTIONS from '../Actions';
+import { getUserColor, removeUserColor } from '../utils/colors';
+import { getLanguageMode } from '../utils/languages';
 
-const Editor = ({ socketRef, roomId, onCodeChange, username }) => {
+const Editor = ({ socketRef, roomId, onCodeChange, username, language = 'javascript', onLanguageChange }) => {
     const editorRef = useRef(null);
     const isRemoteChangeRef = useRef(false);
     const remoteCursorsRef = useRef({});
@@ -21,11 +37,14 @@ const Editor = ({ socketRef, roomId, onCodeChange, username }) => {
             editorRef.current = Codemirror.fromTextArea(
                 document.getElementById('realtimeEditor'),
                 {
-                    mode: { name: 'javascript', json: true },
+                    mode: getLanguageMode(language),
                     theme: 'dracula',
                     autoCloseTags: true,
                     autoCloseBrackets: true,
                     lineNumbers: true,
+                    indentUnit: 4,
+                    indentWithTabs: false,
+                    lineWrapping: true,
                 }
             );
 
@@ -40,7 +59,6 @@ const Editor = ({ socketRef, roomId, onCodeChange, username }) => {
 
                 // Make sure socket is available
                 if (!socketRef.current || !socketRef.current.connected) {
-                    console.warn('Socket not connected, cannot send changes');
                     return;
                 }
 
@@ -48,14 +66,12 @@ const Editor = ({ socketRef, roomId, onCodeChange, username }) => {
                 onCodeChange(code);
 
                 // CodeMirror change object structure
-                // changeObj has: from, to, text (array), removed (array), origin
                 const from = { line: changeObj.from.line, ch: changeObj.from.ch };
                 const to = { line: changeObj.to.line, ch: changeObj.to.ch };
                 const text = changeObj.text.join('\n');
                 const removed = changeObj.removed.join('\n');
 
                 if (socketRef.current && socketRef.current.connected) {
-                    console.log('Sending change:', { from, to, text: text.substring(0, 20) });
                     socketRef.current.emit(ACTIONS.CODE_CHANGE, {
                         roomId,
                         from,
@@ -90,6 +106,13 @@ const Editor = ({ socketRef, roomId, onCodeChange, username }) => {
         init();
     }, []);
 
+    // Update language when it changes
+    useEffect(() => {
+        if (editorRef.current && language) {
+            editorRef.current.setOption('mode', getLanguageMode(language));
+        }
+    }, [language]);
+
     // Set up socket listeners - ensure they persist
     useEffect(() => {
         const setupListeners = () => {
@@ -99,28 +122,22 @@ const Editor = ({ socketRef, roomId, onCodeChange, username }) => {
 
             // Make sure socket is connected
             if (!socketRef.current.connected) {
-                console.log('Socket not connected yet, waiting...');
                 return false;
             }
 
             // Only set up listeners once
             if (listenersSetupRef.current) {
-                console.log('Listeners already set up');
                 return true;
             }
 
             // Handle remote code changes - apply at specific positions
             const handleCodeChange = ({ from, to, text, removed }) => {
                 if (!editorRef.current) {
-                    console.warn('Editor not ready for remote change');
                     return;
                 }
                 if (!from || !to) {
-                    console.error('Invalid change data:', { from, to, text, removed });
                     return;
                 }
-
-                console.log('Receiving change:', { from, to, text: text ? text.substring(0, 20) : 'empty' });
 
                 isRemoteChangeRef.current = true;
 
@@ -135,7 +152,7 @@ const Editor = ({ socketRef, roomId, onCodeChange, username }) => {
                     const code = editorRef.current.getValue();
                     onCodeChange(code);
                 } catch (error) {
-                    console.error('Error applying remote change:', error, { from, to, text });
+                    // Silently handle errors
                 }
 
                 isRemoteChangeRef.current = false;
@@ -148,6 +165,9 @@ const Editor = ({ socketRef, roomId, onCodeChange, username }) => {
                 // Don't show cursor for current user
                 if (socketId === socketRef.current.id) return;
 
+                // Get unique color for this user
+                const userColor = getUserColor(socketId);
+
                 // Remove old cursor marker for this user
                 if (remoteCursorsRef.current[socketId]) {
                     try {
@@ -158,19 +178,19 @@ const Editor = ({ socketRef, roomId, onCodeChange, username }) => {
                     delete remoteCursorsRef.current[socketId];
                 }
 
-                // Create new cursor marker
+                // Create new cursor marker with user's color
                 try {
                     const marker = editorRef.current.setBookmark(
                         { line: cursor.line, ch: cursor.ch },
                         {
-                            widget: createCursorWidget(remoteUsername),
+                            widget: createCursorWidget(remoteUsername, userColor),
                             insertLeft: true,
                         }
                     );
 
                     remoteCursorsRef.current[socketId] = marker;
                 } catch (error) {
-                    console.error('Error creating cursor marker:', error);
+                    // Silently handle errors
                 }
             };
 
@@ -183,6 +203,16 @@ const Editor = ({ socketRef, roomId, onCodeChange, username }) => {
                 isRemoteChangeRef.current = false;
             };
 
+            // Handle language change
+            const handleLanguageChange = ({ newLanguage }) => {
+                if (editorRef.current && newLanguage) {
+                    editorRef.current.setOption('mode', getLanguageMode(newLanguage));
+                    if (onLanguageChange) {
+                        onLanguageChange(newLanguage);
+                    }
+                }
+            };
+
             // Handle user disconnection - clean up their cursor
             const handleDisconnected = ({ socketId }) => {
                 if (remoteCursorsRef.current[socketId]) {
@@ -192,6 +222,7 @@ const Editor = ({ socketRef, roomId, onCodeChange, username }) => {
                         // Marker might already be cleared
                     }
                     delete remoteCursorsRef.current[socketId];
+                    removeUserColor(socketId);
                 }
             };
 
@@ -200,6 +231,7 @@ const Editor = ({ socketRef, roomId, onCodeChange, username }) => {
                 handleCodeChange,
                 handleCursorUpdate,
                 handleSyncCode,
+                handleLanguageChange,
                 handleDisconnected,
             };
 
@@ -207,10 +239,10 @@ const Editor = ({ socketRef, roomId, onCodeChange, username }) => {
             socketRef.current.on(ACTIONS.CODE_CHANGE, handleCodeChange);
             socketRef.current.on(ACTIONS.CURSOR_UPDATE, handleCursorUpdate);
             socketRef.current.on(ACTIONS.SYNC_CODE, handleSyncCode);
+            socketRef.current.on(ACTIONS.LANGUAGE_CHANGE, handleLanguageChange);
             socketRef.current.on(ACTIONS.DISCONNECTED, handleDisconnected);
 
             listenersSetupRef.current = true;
-            console.log('Socket listeners set up successfully');
             return true;
         };
 
@@ -222,6 +254,7 @@ const Editor = ({ socketRef, roomId, onCodeChange, username }) => {
                     socketRef.current.off(ACTIONS.CODE_CHANGE, handlersRef.current.handleCodeChange);
                     socketRef.current.off(ACTIONS.CURSOR_UPDATE, handlersRef.current.handleCursorUpdate);
                     socketRef.current.off(ACTIONS.SYNC_CODE, handlersRef.current.handleSyncCode);
+                    socketRef.current.off(ACTIONS.LANGUAGE_CHANGE, handlersRef.current.handleLanguageChange);
                     socketRef.current.off(ACTIONS.DISCONNECTED, handlersRef.current.handleDisconnected);
                     listenersSetupRef.current = false;
                 }
@@ -251,12 +284,13 @@ const Editor = ({ socketRef, roomId, onCodeChange, username }) => {
                     socketRef.current.off(ACTIONS.CODE_CHANGE, handlersRef.current.handleCodeChange);
                     socketRef.current.off(ACTIONS.CURSOR_UPDATE, handlersRef.current.handleCursorUpdate);
                     socketRef.current.off(ACTIONS.SYNC_CODE, handlersRef.current.handleSyncCode);
+                    socketRef.current.off(ACTIONS.LANGUAGE_CHANGE, handlersRef.current.handleLanguageChange);
                     socketRef.current.off(ACTIONS.DISCONNECTED, handlersRef.current.handleDisconnected);
                 }
                 listenersSetupRef.current = false;
             }
         };
-    }, [roomId]);
+    }, [roomId, onCodeChange, onLanguageChange]);
 
     // Cleanup cursor markers on unmount
     useEffect(() => {
@@ -273,34 +307,37 @@ const Editor = ({ socketRef, roomId, onCodeChange, username }) => {
     return <textarea id="realtimeEditor"></textarea>;
 };
 
-// Create a visual widget for remote cursors
-function createCursorWidget(username) {
+// Create a visual widget for remote cursors with unique colors
+function createCursorWidget(username, color) {
     const widget = document.createElement('span');
     widget.className = 'remote-cursor';
-    widget.style.borderLeft = '2px solid #4aed88';
+    widget.style.borderLeft = `2px solid ${color}`;
     widget.style.marginLeft = '-1px';
     widget.style.height = '1.2em';
     widget.style.position = 'relative';
     widget.style.display = 'inline-block';
     widget.style.width = '2px';
-    widget.style.backgroundColor = '#4aed88';
-    widget.style.opacity = '0.7';
+    widget.style.backgroundColor = color;
+    widget.style.opacity = '0.8';
+    widget.style.transition = 'opacity 0.2s';
     
-    // Add username label
+    // Add username label with user's color
     const label = document.createElement('span');
     label.className = 'remote-cursor-label';
     label.textContent = username;
     label.style.position = 'absolute';
     label.style.top = '-20px';
     label.style.left = '0';
-    label.style.background = '#4aed88';
-    label.style.color = '#000';
-    label.style.padding = '2px 6px';
-    label.style.borderRadius = '3px';
-    label.style.fontSize = '12px';
+    label.style.background = color;
+    label.style.color = '#fff';
+    label.style.padding = '2px 8px';
+    label.style.borderRadius = '4px';
+    label.style.fontSize = '11px';
+    label.style.fontWeight = '500';
     label.style.whiteSpace = 'nowrap';
     label.style.zIndex = '1000';
     label.style.pointerEvents = 'none';
+    label.style.boxShadow = '0 2px 4px rgba(0,0,0,0.2)';
     widget.appendChild(label);
 
     return widget;

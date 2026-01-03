@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import ACTIONS from '../Actions';
 import Client from '../components/Client';
 import Editor from '../components/Editor';
+import LanguageSelector from '../components/LanguageSelector';
 import { initSocket } from '../socket';
 import {
     useLocation,
@@ -18,6 +19,7 @@ const EditorPage = () => {
     const { roomId } = useParams();
     const reactNavigator = useNavigate();
     const [clients, setClients] = useState([]);
+    const [language, setLanguage] = useState('javascript');
 
     useEffect(() => {
         const init = async () => {
@@ -64,12 +66,20 @@ const EditorPage = () => {
                     });
                 }
             );
+
+            // Listen for language changes from other users
+            socketRef.current.on(ACTIONS.LANGUAGE_CHANGE, ({ newLanguage }) => {
+                setLanguage(newLanguage);
+            });
         };
         init();
         return () => {
-            socketRef.current.disconnect();
-            socketRef.current.off(ACTIONS.JOINED);
-            socketRef.current.off(ACTIONS.DISCONNECTED);
+            if (socketRef.current) {
+                socketRef.current.disconnect();
+                socketRef.current.off(ACTIONS.JOINED);
+                socketRef.current.off(ACTIONS.DISCONNECTED);
+                socketRef.current.off(ACTIONS.LANGUAGE_CHANGE);
+            }
         };
     }, []);
 
@@ -120,10 +130,24 @@ const EditorPage = () => {
                 </button>
             </div>
             <div className="editorWrap">
+                <div style={{ 
+                    padding: '10px 15px', 
+                    backgroundColor: '#1e1e2e',
+                    borderBottom: '1px solid #444'
+                }}>
+                    <LanguageSelector
+                        currentLanguage={language}
+                        onLanguageChange={setLanguage}
+                        socketRef={socketRef}
+                        roomId={roomId}
+                    />
+                </div>
                 <Editor
                     socketRef={socketRef}
                     roomId={roomId}
                     username={location.state?.username}
+                    language={language}
+                    onLanguageChange={setLanguage}
                     onCodeChange={(code) => {
                         codeRef.current = code;
                     }}
