@@ -7,3 +7,12 @@ body {
     -moz-osx-font-smoothing: grayscale;
     background: #1c1e29;
 }
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}

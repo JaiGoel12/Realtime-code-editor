@@ -24,13 +24,25 @@ import ACTIONS from '../Actions';
 import { getUserColor, removeUserColor } from '../utils/colors';
 import { getLanguageMode } from '../utils/languages';
 
-const Editor = ({ socketRef, roomId, onCodeChange, username, language = 'javascript', onLanguageChange }) => {
+const Editor = React.forwardRef(({ socketRef, roomId, onCodeChange, username, language = 'javascript', onLanguageChange, fontSize = 16 }, ref) => {
     const editorRef = useRef(null);
     const isRemoteChangeRef = useRef(false);
     const remoteCursorsRef = useRef({});
     const cursorUpdateTimeoutRef = useRef(null);
     const handlersRef = useRef({});
     const listenersSetupRef = useRef(false);
+
+    // Expose editor instance via ref
+    React.useImperativeHandle(ref, () => ({
+        getValue: () => editorRef.current?.getValue() || '',
+        setValue: (value) => {
+            if (editorRef.current) {
+                isRemoteChangeRef.current = true;
+                editorRef.current.setValue(value);
+                isRemoteChangeRef.current = false;
+            }
+        }
+    }));
 
     useEffect(() => {
         async function init() {
@@ -45,8 +57,12 @@ const Editor = ({ socketRef, roomId, onCodeChange, username, language = 'javascr
                     indentUnit: 4,
                     indentWithTabs: false,
                     lineWrapping: true,
+                    fontSize: fontSize,
                 }
             );
+            
+            // Set font size
+            editorRef.current.getWrapperElement().style.fontSize = `${fontSize}px`;
 
             // Handle local changes - send incremental updates
             editorRef.current.on('change', (instance, changeObj) => {
@@ -112,6 +128,14 @@ const Editor = ({ socketRef, roomId, onCodeChange, username, language = 'javascr
             editorRef.current.setOption('mode', getLanguageMode(language));
         }
     }, [language]);
+
+    // Update font size when it changes
+    useEffect(() => {
+        if (editorRef.current) {
+            editorRef.current.getWrapperElement().style.fontSize = `${fontSize}px`;
+            editorRef.current.refresh();
+        }
+    }, [fontSize]);
 
     // Set up socket listeners - ensure they persist
     useEffect(() => {
@@ -305,7 +329,9 @@ const Editor = ({ socketRef, roomId, onCodeChange, username, language = 'javascr
     }, []);
 
     return <textarea id="realtimeEditor"></textarea>;
-};
+});
+
+Editor.displayName = 'Editor';
 
 // Create a visual widget for remote cursors with unique colors
 function createCursorWidget(username, color) {
