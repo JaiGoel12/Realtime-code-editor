@@ -13,6 +13,8 @@ const Editor = ({ socketRef, roomId, onCodeChange, username }) => {
     const isRemoteChangeRef = useRef(false);
     const remoteCursorsRef = useRef({});
     const cursorUpdateTimeoutRef = useRef(null);
+    const handlersRef = useRef({});
+    const listenersSetupRef = useRef(false);
 
     useEffect(() => {
         async function init() {
@@ -88,11 +90,23 @@ const Editor = ({ socketRef, roomId, onCodeChange, username }) => {
         init();
     }, []);
 
-    // Set up socket listeners - use a polling approach to check when socket is ready
+    // Set up socket listeners - ensure they persist
     useEffect(() => {
-        const setupSocketListeners = () => {
+        const setupListeners = () => {
             if (!socketRef.current || !editorRef.current) {
                 return false;
+            }
+
+            // Make sure socket is connected
+            if (!socketRef.current.connected) {
+                console.log('Socket not connected yet, waiting...');
+                return false;
+            }
+
+            // Only set up listeners once
+            if (listenersSetupRef.current) {
+                console.log('Listeners already set up');
+                return true;
             }
 
             // Handle remote code changes - apply at specific positions
@@ -181,11 +195,13 @@ const Editor = ({ socketRef, roomId, onCodeChange, username }) => {
                 }
             };
 
-            // Remove existing listeners to avoid duplicates
-            socketRef.current.off(ACTIONS.CODE_CHANGE);
-            socketRef.current.off(ACTIONS.CURSOR_UPDATE);
-            socketRef.current.off(ACTIONS.SYNC_CODE);
-            socketRef.current.off(ACTIONS.DISCONNECTED);
+            // Store handlers in ref so we can remove them properly
+            handlersRef.current = {
+                handleCodeChange,
+                handleCursorUpdate,
+                handleSyncCode,
+                handleDisconnected,
+            };
 
             // Set up all listeners
             socketRef.current.on(ACTIONS.CODE_CHANGE, handleCodeChange);
@@ -193,25 +209,35 @@ const Editor = ({ socketRef, roomId, onCodeChange, username }) => {
             socketRef.current.on(ACTIONS.SYNC_CODE, handleSyncCode);
             socketRef.current.on(ACTIONS.DISCONNECTED, handleDisconnected);
 
+            listenersSetupRef.current = true;
             console.log('Socket listeners set up successfully');
             return true;
         };
 
-        // Try to set up listeners immediately
-        if (setupSocketListeners()) {
-            return;
+        // Try to set up immediately
+        if (setupListeners()) {
+            return () => {
+                // Cleanup on unmount
+                if (socketRef.current && handlersRef.current) {
+                    socketRef.current.off(ACTIONS.CODE_CHANGE, handlersRef.current.handleCodeChange);
+                    socketRef.current.off(ACTIONS.CURSOR_UPDATE, handlersRef.current.handleCursorUpdate);
+                    socketRef.current.off(ACTIONS.SYNC_CODE, handlersRef.current.handleSyncCode);
+                    socketRef.current.off(ACTIONS.DISCONNECTED, handlersRef.current.handleDisconnected);
+                    listenersSetupRef.current = false;
+                }
+            };
         }
 
-        // If not ready, poll every 100ms until socket and editor are ready
+        // Poll until ready
         const interval = setInterval(() => {
-            if (setupSocketListeners()) {
+            if (setupListeners()) {
                 clearInterval(interval);
             }
         }, 100);
 
-        // Also try when socket connects
+        // Also try on connect
         const onConnect = () => {
-            setupSocketListeners();
+            setupListeners();
         };
         if (socketRef.current) {
             socketRef.current.on('connect', onConnect);
@@ -221,13 +247,16 @@ const Editor = ({ socketRef, roomId, onCodeChange, username }) => {
             clearInterval(interval);
             if (socketRef.current) {
                 socketRef.current.off('connect', onConnect);
-                socketRef.current.off(ACTIONS.CODE_CHANGE);
-                socketRef.current.off(ACTIONS.CURSOR_UPDATE);
-                socketRef.current.off(ACTIONS.SYNC_CODE);
-                socketRef.current.off(ACTIONS.DISCONNECTED);
+                if (handlersRef.current) {
+                    socketRef.current.off(ACTIONS.CODE_CHANGE, handlersRef.current.handleCodeChange);
+                    socketRef.current.off(ACTIONS.CURSOR_UPDATE, handlersRef.current.handleCursorUpdate);
+                    socketRef.current.off(ACTIONS.SYNC_CODE, handlersRef.current.handleSyncCode);
+                    socketRef.current.off(ACTIONS.DISCONNECTED, handlersRef.current.handleDisconnected);
+                }
+                listenersSetupRef.current = false;
             }
         };
-    }, [roomId, onCodeChange]);
+    }, [roomId]);
 
     // Cleanup cursor markers on unmount
     useEffect(() => {
