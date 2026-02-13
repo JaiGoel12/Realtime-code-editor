@@ -6,7 +6,6 @@ import reportWebVitals from './reportWebVitals';
 import { ClerkProvider } from '@clerk/clerk-react'
 
 
-// Import your Publishable Key\
 const PUBLISHABLE_KEY = "pk_test_Z3JhdGVmdWwtYW50ZWF0ZXItMzMuY2xlcmsuYWNjb3VudHMuZGV2JA"
 if (!PUBLISHABLE_KEY) {
   throw new Error("Missing Publishable Key")
