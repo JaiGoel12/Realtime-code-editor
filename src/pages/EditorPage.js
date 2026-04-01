@@ -132,7 +132,7 @@ const EditorPage = () => {
                 socketRef.current = null;
             }
         };
-    }, []);
+    }, [roomId, location.state?.username, reactNavigator]);
 
     async function copyRoomId() {
         try {

@@ -4,37 +4,48 @@ const ConnectionStatus = ({ socketRef }) => {
     const [isConnected, setIsConnected] = useState(true); // Default to true, will update when socket is ready
 
     useEffect(() => {
-        if (!socketRef.current) {
-            // Poll until socket is available
-            const interval = setInterval(() => {
-                if (socketRef.current) {
-                    clearInterval(interval);
-                    const updateStatus = () => {
-                        setIsConnected(socketRef.current?.connected || false);
-                    };
-                    updateStatus();
-                    socketRef.current.on('connect', updateStatus);
-                    socketRef.current.on('disconnect', updateStatus);
-                }
-            }, 100);
-            return () => clearInterval(interval);
-        }
+        let intervalId;
+        let attachedSocket = null;
 
-        const updateStatus = () => {
-            setIsConnected(socketRef.current?.connected || false);
+        const detach = () => {
+            if (attachedSocket) {
+                attachedSocket.off('connect', updateStatus);
+                attachedSocket.off('disconnect', updateStatus);
+                attachedSocket = null;
+            }
         };
 
-        // Check initial status
-        updateStatus();
+        const updateStatus = () => {
+            setIsConnected(attachedSocket?.connected || false);
+        };
 
-        socketRef.current.on('connect', updateStatus);
-        socketRef.current.on('disconnect', updateStatus);
+        const attach = (socket) => {
+            detach();
+            attachedSocket = socket;
+            updateStatus();
+            socket.on('connect', updateStatus);
+            socket.on('disconnect', updateStatus);
+        };
+
+        const tryAttach = () => {
+            const s = socketRef.current;
+            if (s) {
+                if (intervalId) {
+                    clearInterval(intervalId);
+                    intervalId = undefined;
+                }
+                attach(s);
+            }
+        };
+
+        tryAttach();
+        if (!socketRef.current) {
+            intervalId = setInterval(tryAttach, 100);
+        }
 
         return () => {
-            if (socketRef.current) {
-                socketRef.current.off('connect', updateStatus);
-                socketRef.current.off('disconnect', updateStatus);
-            }
+            if (intervalId) clearInterval(intervalId);
+            detach();
         };
     }, [socketRef]);
 

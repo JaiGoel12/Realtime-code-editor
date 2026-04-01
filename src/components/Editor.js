@@ -126,6 +126,7 @@ const Editor = React.forwardRef(({ socketRef, roomId, onCodeChange, username, la
             });
         }
         init();
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- CodeMirror mounted once; mode/font/socket use other effects/refs
     }, []);
 
     // Update language when it changes
@@ -145,6 +146,10 @@ const Editor = React.forwardRef(({ socketRef, roomId, onCodeChange, username, la
 
     // Set up socket listeners - ensure they persist
     useEffect(() => {
+        let interval = null;
+        let socketBoundForActions = null;
+        let socketBoundForConnect = null;
+
         const setupListeners = () => {
             if (!socketRef.current || !editorRef.current) {
                 return false;
@@ -159,6 +164,8 @@ const Editor = React.forwardRef(({ socketRef, roomId, onCodeChange, username, la
             if (listenersSetupRef.current) {
                 return true;
             }
+
+            const sock = socketRef.current;
 
             // Handle remote code changes - apply at specific positions
             const handleCodeChange = ({ from, to, text, removed }) => {
@@ -193,7 +200,7 @@ const Editor = React.forwardRef(({ socketRef, roomId, onCodeChange, username, la
                 if (!editorRef.current || !cursor) return;
 
                 // Don't show cursor for current user
-                if (socketId === socketRef.current.id) return;
+                if (socketId === sock.id) return;
 
                 // Get unique color for this user
                 const userColor = getUserColor(socketId);
@@ -266,66 +273,59 @@ const Editor = React.forwardRef(({ socketRef, roomId, onCodeChange, username, la
             };
 
             // Set up all listeners
-            socketRef.current.on(ACTIONS.CODE_CHANGE, handleCodeChange);
-            socketRef.current.on(ACTIONS.CURSOR_UPDATE, handleCursorUpdate);
-            socketRef.current.on(ACTIONS.SYNC_CODE, handleSyncCode);
-            socketRef.current.on(ACTIONS.LANGUAGE_CHANGE, handleLanguageChange);
-            socketRef.current.on(ACTIONS.DISCONNECTED, handleDisconnected);
+            sock.on(ACTIONS.CODE_CHANGE, handleCodeChange);
+            sock.on(ACTIONS.CURSOR_UPDATE, handleCursorUpdate);
+            sock.on(ACTIONS.SYNC_CODE, handleSyncCode);
+            sock.on(ACTIONS.LANGUAGE_CHANGE, handleLanguageChange);
+            sock.on(ACTIONS.DISCONNECTED, handleDisconnected);
 
+            socketBoundForActions = sock;
             listenersSetupRef.current = true;
             return true;
         };
 
-        // Try to set up immediately
-        if (setupListeners()) {
-            return () => {
-                // Cleanup on unmount
-                if (socketRef.current && handlersRef.current) {
-                    socketRef.current.off(ACTIONS.CODE_CHANGE, handlersRef.current.handleCodeChange);
-                    socketRef.current.off(ACTIONS.CURSOR_UPDATE, handlersRef.current.handleCursorUpdate);
-                    socketRef.current.off(ACTIONS.SYNC_CODE, handlersRef.current.handleSyncCode);
-                    socketRef.current.off(ACTIONS.LANGUAGE_CHANGE, handlersRef.current.handleLanguageChange);
-                    socketRef.current.off(ACTIONS.DISCONNECTED, handlersRef.current.handleDisconnected);
-                    listenersSetupRef.current = false;
-                }
-            };
-        }
-
-        // Poll until ready
-        const interval = setInterval(() => {
-            if (setupListeners()) {
-                clearInterval(interval);
-            }
-        }, 100);
-
-        // Also try on connect
         const onConnect = () => {
             setupListeners();
         };
-        if (socketRef.current) {
-            socketRef.current.on('connect', onConnect);
+
+        if (setupListeners()) {
+            // listeners attached synchronously
+        } else {
+            interval = setInterval(() => {
+                if (setupListeners()) {
+                    clearInterval(interval);
+                    interval = null;
+                }
+            }, 100);
+
+            const s = socketRef.current;
+            if (s) {
+                s.on('connect', onConnect);
+                socketBoundForConnect = s;
+            }
         }
 
         return () => {
-            clearInterval(interval);
-            if (socketRef.current) {
-                socketRef.current.off('connect', onConnect);
-                if (handlersRef.current) {
-                    socketRef.current.off(ACTIONS.CODE_CHANGE, handlersRef.current.handleCodeChange);
-                    socketRef.current.off(ACTIONS.CURSOR_UPDATE, handlersRef.current.handleCursorUpdate);
-                    socketRef.current.off(ACTIONS.SYNC_CODE, handlersRef.current.handleSyncCode);
-                    socketRef.current.off(ACTIONS.LANGUAGE_CHANGE, handlersRef.current.handleLanguageChange);
-                    socketRef.current.off(ACTIONS.DISCONNECTED, handlersRef.current.handleDisconnected);
-                }
-                listenersSetupRef.current = false;
+            if (interval) clearInterval(interval);
+            if (socketBoundForConnect) {
+                socketBoundForConnect.off('connect', onConnect);
             }
+            if (socketBoundForActions && handlersRef.current) {
+                socketBoundForActions.off(ACTIONS.CODE_CHANGE, handlersRef.current.handleCodeChange);
+                socketBoundForActions.off(ACTIONS.CURSOR_UPDATE, handlersRef.current.handleCursorUpdate);
+                socketBoundForActions.off(ACTIONS.SYNC_CODE, handlersRef.current.handleSyncCode);
+                socketBoundForActions.off(ACTIONS.LANGUAGE_CHANGE, handlersRef.current.handleLanguageChange);
+                socketBoundForActions.off(ACTIONS.DISCONNECTED, handlersRef.current.handleDisconnected);
+            }
+            listenersSetupRef.current = false;
         };
-    }, [roomId, onCodeChange, onLanguageChange]);
+    }, [roomId, onCodeChange, onLanguageChange, socketRef]);
 
     // Cleanup cursor markers on unmount
     useEffect(() => {
+        const cursorsRef = remoteCursorsRef;
         return () => {
-            Object.values(remoteCursorsRef.current).forEach((marker) => {
+            Object.values(cursorsRef.current).forEach((marker) => {
                 if (marker && marker.clear) marker.clear();
             });
             if (cursorUpdateTimeoutRef.current) {
