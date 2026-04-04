@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import ACTIONS from '../Actions';
 import Client from '../components/Client';
@@ -6,10 +6,10 @@ import Editor from '../components/Editor';
 import EditorToolbar from '../components/EditorToolbar';
 import ConnectionStatus from '../components/ConnectionStatus';
 import { initSocket } from '../socket';
+import { useUser } from '@clerk/clerk-react';
 import {
     useLocation,
     useNavigate,
-    Navigate,
     useParams,
 } from 'react-router-dom';
 
@@ -20,6 +20,21 @@ const EditorPage = () => {
     const location = useLocation();
     const { roomId } = useParams();
     const reactNavigator = useNavigate();
+    const { user, isLoaded } = useUser();
+
+    const collaboratorUsername = useMemo(() => {
+        if (location.state?.username) {
+            return location.state.username;
+        }
+        if (!user) return 'Guest';
+        const emailLocal = user.primaryEmailAddress?.emailAddress?.split('@')[0];
+        return (
+            user.username ||
+            user.firstName ||
+            emailLocal ||
+            'Guest'
+        );
+    }, [location.state?.username, user]);
     const [clients, setClients] = useState([]);
     const [typingSocketIds, setTypingSocketIds] = useState(() => new Set());
     const typingClearTimeoutsRef = useRef({});
@@ -28,6 +43,9 @@ const EditorPage = () => {
     const [code, setCode] = useState('');
 
     useEffect(() => {
+        if (!isLoaded) {
+            return undefined;
+        }
         let cancelled = false;
         const init = async () => {
             const socket = await initSocket();
@@ -47,13 +65,13 @@ const EditorPage = () => {
 
             socket.emit(ACTIONS.JOIN, {
                 roomId,
-                username: location.state?.username,
+                username: collaboratorUsername,
             });
 
             socket.on(
                 ACTIONS.JOINED,
                 ({ clients, username, socketId }) => {
-                    if (username !== location.state?.username) {
+                    if (username !== collaboratorUsername) {
                         toast.success(`${username} joined the room.`);
                     }
                     setClients(clients);
@@ -132,14 +150,15 @@ const EditorPage = () => {
                 socketRef.current = null;
             }
         };
-    }, [roomId, location.state?.username, reactNavigator]);
+    }, [roomId, collaboratorUsername, reactNavigator, isLoaded]);
 
-    async function copyRoomId() {
+    async function copyInviteLink() {
+        const inviteUrl = `${window.location.origin}/room/${roomId}`;
         try {
-            await navigator.clipboard.writeText(roomId);
-            toast.success('Room ID copied to clipboard!');
+            await navigator.clipboard.writeText(inviteUrl);
+            toast.success('Invite link copied! Others can sign in and join this room.');
         } catch (err) {
-            toast.error('Could not copy the Room ID');
+            toast.error('Could not copy the link');
             console.error(err);
         }
     }
@@ -279,8 +298,22 @@ const EditorPage = () => {
         }).join('\n');
     };
 
-    if (!location.state) {
-        return <Navigate to="/" />;
+    if (!isLoaded) {
+        return (
+            <div
+                style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    height: '100vh',
+                    backgroundColor: '#0d1117',
+                    color: '#a0a0a0',
+                    fontSize: '15px',
+                }}
+            >
+                Loading editor…
+            </div>
+        );
     }
 
     return (
@@ -393,7 +426,7 @@ const EditorPage = () => {
                     gap: '12px'
                 }}>
                     <button
-                        onClick={copyRoomId}
+                        onClick={copyInviteLink}
                         style={{
                             padding: '12px',
                             borderRadius: '8px',
@@ -409,7 +442,7 @@ const EditorPage = () => {
                         onMouseOver={(e) => e.target.style.transform = 'translateY(-2px)'}
                         onMouseOut={(e) => e.target.style.transform = 'translateY(0)'}
                     >
-                        📋 Copy Room ID
+                        🔗 Copy invite link
                     </button>
                     <button
                         onClick={leaveRoom}
@@ -456,7 +489,7 @@ const EditorPage = () => {
                         ref={editorRef}
                         socketRef={socketRef}
                         roomId={roomId}
-                        username={location.state?.username}
+                        username={collaboratorUsername}
                         language={language}
                         fontSize={fontSize}
                         onLanguageChange={setLanguage}
