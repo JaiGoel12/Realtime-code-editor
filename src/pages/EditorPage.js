@@ -6,7 +6,15 @@ import Client from '../components/Client';
 import Editor from '../components/Editor';
 import EditorToolbar from '../components/EditorToolbar';
 import ConnectionStatus from '../components/ConnectionStatus';
+import ThemeToggle from '../components/ThemeToggle';
 import { initSocket } from '../socket';
+import {
+    getSoundsEnabled,
+    setSoundsEnabled as persistSoundsEnabled,
+    playJoinChime,
+    playLeaveChime,
+} from '../utils/sounds';
+import { renderRoomPinHtml } from '../utils/pinNote';
 import { useUser } from '@clerk/clerk-react';
 import {
     useLocation,
@@ -42,6 +50,38 @@ const EditorPage = () => {
     const [language, setLanguage] = useState('javascript');
     const [fontSize, setFontSize] = useState(16);
     const [code, setCode] = useState('');
+    const [zenMode, setZenMode] = useState(false);
+    const [followSocketId, setFollowSocketId] = useState(null);
+    const followSocketIdRef = useRef(null);
+    const [mySocketId, setMySocketId] = useState(null);
+    const connectIdHandlerRef = useRef(null);
+    const [soundsEnabled, setSoundsEnabled] = useState(() =>
+        getSoundsEnabled()
+    );
+    const [roomPin, setRoomPin] = useState('');
+    const [pinInput, setPinInput] = useState('');
+    const pinFocusRef = useRef(false);
+
+    useEffect(() => {
+        followSocketIdRef.current = followSocketId;
+    }, [followSocketId]);
+
+    useEffect(() => {
+        if (!followSocketId) return;
+        if (!clients.some((c) => c.socketId === followSocketId)) {
+            setFollowSocketId(null);
+        }
+    }, [clients, followSocketId]);
+
+    useEffect(() => {
+        const onKey = (e) => {
+            if (e.key !== 'Escape') return;
+            setFollowSocketId(null);
+            setZenMode(false);
+        };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, []);
 
     useEffect(() => {
         if (!isLoaded) {
@@ -55,6 +95,9 @@ const EditorPage = () => {
                 return;
             }
             socketRef.current = socket;
+            connectIdHandlerRef.current = () => setMySocketId(socket.id);
+            socket.on('connect', connectIdHandlerRef.current);
+            connectIdHandlerRef.current();
             socket.on('connect_error', (err) => handleErrors(err));
             socket.on('connect_failed', (err) => handleErrors(err));
 
@@ -72,6 +115,9 @@ const EditorPage = () => {
             socket.on(
                 ACTIONS.JOINED,
                 ({ clients, username, socketId }) => {
+                    if (socketId !== socket.id) {
+                        playJoinChime();
+                    }
                     if (username !== collaboratorUsername) {
                         toast.success(`${username} joined the room.`);
                     }
@@ -86,7 +132,7 @@ const EditorPage = () => {
             socket.on(
                 ACTIONS.DISCONNECTED,
                 ({ socketId, username }) => {
-                    toast.success(`${username} left the room.`);
+                    playLeaveChime();
                     if (typingClearTimeoutsRef.current[socketId]) {
                         clearTimeout(typingClearTimeoutsRef.current[socketId]);
                         delete typingClearTimeoutsRef.current[socketId];
@@ -131,6 +177,14 @@ const EditorPage = () => {
                 });
                 scheduleTypingClear(socketId);
             });
+
+            socket.on(ACTIONS.ROOM_PIN_SYNC, ({ note }) => {
+                const n = typeof note === 'string' ? note : '';
+                setRoomPin(n);
+                if (!pinFocusRef.current) {
+                    setPinInput(n);
+                }
+            });
         };
         init().catch((e) => console.error('Socket init failed', e));
         return () => {
@@ -141,15 +195,20 @@ const EditorPage = () => {
             typingClearTimeoutsRef.current = {};
             const s = socketRef.current;
             if (s) {
+                if (connectIdHandlerRef.current) {
+                    s.off('connect', connectIdHandlerRef.current);
+                }
                 s.off(ACTIONS.JOINED);
                 s.off(ACTIONS.DISCONNECTED);
                 s.off(ACTIONS.LANGUAGE_CHANGE);
                 s.off(ACTIONS.TYPING);
+                s.off(ACTIONS.ROOM_PIN_SYNC);
                 s.off('connect_error');
                 s.off('connect_failed');
                 s.disconnect();
                 socketRef.current = null;
             }
+            setMySocketId(null);
         };
     }, [roomId, collaboratorUsername, reactNavigator, isLoaded]);
 
@@ -168,9 +227,33 @@ const EditorPage = () => {
         reactNavigator('/');
     }
 
+    function pushRoomPin() {
+        const cleaned = pinInput.replace(/\s+/g, ' ').trim().slice(0, 200);
+        if (!socketRef.current?.connected) {
+            toast.error('Not connected — pin not sent');
+            return;
+        }
+        socketRef.current.emit(ACTIONS.ROOM_PIN_SET, {
+            roomId,
+            note: cleaned,
+        });
+        toast.success('Room pin updated for everyone');
+    }
+
     const handleCodeChange = (newCode) => {
         codeRef.current = newCode;
         setCode(newCode);
+    };
+
+    const toggleFollowCollaborator = (client) => {
+        if (!mySocketId || client.socketId === mySocketId) return;
+        const prev = followSocketIdRef.current;
+        const next = prev === client.socketId ? null : client.socketId;
+        setFollowSocketId(next);
+        // Toast must not run inside setState updater — React Strict Mode runs that twice in dev.
+        if (next) {
+            toast.success(`Following ${client.username}`);
+        }
     };
 
     const handleClearCode = () => {
@@ -319,7 +402,11 @@ const EditorPage = () => {
     }
 
     return (
-        <div className="cs-editor-root">
+        <div
+            className={
+                'cs-editor-root' + (zenMode ? ' cs-editor-root--zen' : '')
+            }
+        >
             <div className="cs-editor-ambient" aria-hidden>
                 <div className="cs-editor-orb cs-editor-orb--1" />
                 <div className="cs-editor-orb cs-editor-orb--2" />
@@ -357,19 +444,85 @@ const EditorPage = () => {
                     </div>
                 </div>
 
+                <div className="cs-room-pin" aria-label="Room pin note">
+                    <div className="cs-room-pin-head">
+                        <span className="cs-room-pin-label">Room pin</span>
+                        <span className="cs-room-pin-hint">One line, **bold** · `code`</span>
+                    </div>
+                    {roomPin ? (
+                        <p
+                            className="cs-room-pin-preview"
+                            dangerouslySetInnerHTML={{
+                                __html: renderRoomPinHtml(roomPin),
+                            }}
+                        />
+                    ) : (
+                        <p className="cs-room-pin-empty">No pin yet — set a goal for the room.</p>
+                    )}
+                    <textarea
+                        className="cs-room-pin-input"
+                        rows={2}
+                        maxLength={200}
+                        value={pinInput}
+                        onChange={(e) => setPinInput(e.target.value)}
+                        onFocus={() => {
+                            pinFocusRef.current = true;
+                        }}
+                        onBlur={() => {
+                            pinFocusRef.current = false;
+                        }}
+                        placeholder='e.g. Goal: **fix auth** in `login.ts`'
+                        spellCheck="false"
+                    />
+                    <button
+                        type="button"
+                        className="cs-btn cs-btn--pin"
+                        onClick={pushRoomPin}
+                    >
+                        Sync to room
+                    </button>
+                </div>
+
                 <div className="cs-sidebar-main">
+                    <p className="cs-sidebar-follow-hint">
+                        Tap a teammate to follow their cursor —{' '}
+                        <kbd className="cs-kbd">Esc</kbd> to stop
+                    </p>
                     <div className="cs-collab-list">
                         {clients.map((client) => {
                             const isTyping = typingSocketIds.has(client.socketId);
+                            const isSelf = mySocketId === client.socketId;
+                            const isFollowing =
+                                followSocketId === client.socketId;
                             return (
                                 <div
                                     key={client.socketId}
                                     className={
                                         'cs-collab-row' +
-                                        (isTyping ? ' cs-collab-row--typing' : '')
+                                        (isTyping ? ' cs-collab-row--typing' : '') +
+                                        (isFollowing ? ' cs-collab-row--follow' : '') +
+                                        (isSelf ? ' cs-collab-row--self' : '')
                                     }
+                                    role={isSelf ? undefined : 'button'}
+                                    tabIndex={isSelf ? undefined : 0}
+                                    onClick={() =>
+                                        !isSelf &&
+                                        toggleFollowCollaborator(client)
+                                    }
+                                    onKeyDown={(e) => {
+                                        if (isSelf) return;
+                                        if (e.key === 'Enter' || e.key === ' ') {
+                                            e.preventDefault();
+                                            toggleFollowCollaborator(client);
+                                        }
+                                    }}
                                 >
-                                    <Client username={client.username} isTyping={isTyping} />
+                                    <Client
+                                        username={client.username}
+                                        isTyping={isTyping}
+                                        isFollowing={isFollowing}
+                                        isSelf={isSelf}
+                                    />
                                 </div>
                             );
                         })}
@@ -377,6 +530,23 @@ const EditorPage = () => {
                 </div>
 
                 <div className="cs-sidebar-footer">
+                    <div className="cs-sidebar-footer-settings">
+                        <ThemeToggle className="cs-sidebar-theme-toggle" />
+                        <label className="cs-sound-toggle">
+                            <input
+                                type="checkbox"
+                                checked={soundsEnabled}
+                                onChange={(e) => {
+                                    const on = e.target.checked;
+                                    persistSoundsEnabled(on);
+                                    setSoundsEnabled(on);
+                                }}
+                            />
+                            <span className="cs-sound-toggle-label">
+                                Join / leave sounds
+                            </span>
+                        </label>
+                    </div>
                     <button
                         type="button"
                         className="cs-btn cs-btn--invite"
@@ -406,6 +576,8 @@ const EditorPage = () => {
                     onFontSizeChange={setFontSize}
                     onClearCode={handleClearCode}
                     onFormatCode={handleFormatCode}
+                    zenMode={zenMode}
+                    onZenToggle={() => setZenMode((z) => !z)}
                 />
                 <div className="cs-editor-cm-wrap">
                     <Editor
@@ -417,9 +589,21 @@ const EditorPage = () => {
                         fontSize={fontSize}
                         onLanguageChange={setLanguage}
                         onCodeChange={handleCodeChange}
+                        followSocketId={followSocketId}
                     />
                 </div>
             </div>
+
+            {zenMode && (
+                <button
+                    type="button"
+                    className="cs-zen-exit"
+                    onClick={() => setZenMode(false)}
+                >
+                    Exit focus
+                    <span className="cs-zen-exit-hint">Esc</span>
+                </button>
+            )}
         </div>
     );
 };

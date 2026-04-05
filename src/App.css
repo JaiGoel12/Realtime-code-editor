@@ -515,4 +515,68 @@ footer a:hover {
     border: 1px solid var(--cs-border) !important;
     box-shadow: var(--cs-shadow-soft) !important;
     backdrop-filter: blur(12px);
+    background: var(--cs-toast-bg) !important;
+    color: var(--cs-toast-text) !important;
+}
+
+.home-top-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Light mode — home shell (hardcoded dark glass / orbs) */
+html[data-theme='light'] .homePageWrapper::before {
+    background: radial-gradient(ellipse 120% 70% at 50% -40%, rgba(66, 133, 244, 0.12), transparent 58%),
+        radial-gradient(ellipse 80% 50% at 100% 0%, rgba(26, 86, 196, 0.08), transparent 50%),
+        radial-gradient(ellipse 70% 45% at 0% 100%, rgba(0, 102, 163, 0.08), transparent 48%),
+        radial-gradient(ellipse 50% 40% at 80% 60%, rgba(92, 61, 196, 0.05), transparent 45%),
+        var(--cs-bg-void);
+}
+
+html[data-theme='light'] .homePageWrapper::after {
+    opacity: 0.22;
+    mix-blend-mode: multiply;
+}
+
+html[data-theme='light'] .home-vignette {
+    background: radial-gradient(ellipse 85% 75% at 50% 50%, transparent 35%, rgba(255, 255, 255, 0.85) 100%);
+}
+
+html[data-theme='light'] .home-orb--a {
+    background: rgba(66, 133, 244, 0.16);
+}
+
+html[data-theme='light'] .home-orb--b {
+    background: rgba(0, 102, 163, 0.12);
+}
+
+html[data-theme='light'] .home-orb--c {
+    background: rgba(92, 61, 196, 0.1);
+}
+
+html[data-theme='light'] .home-grid {
+    background-image: linear-gradient(rgba(21, 88, 192, 0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(21, 88, 192, 0.06) 1px, transparent 1px);
+}
+
+html[data-theme='light'] .formWrapper {
+    background: rgba(255, 255, 255, 0.78);
+    box-shadow: var(--cs-shadow-soft), 0 0 0 1px rgba(255, 255, 255, 0.8) inset;
+}
+
+html[data-theme='light'] .formWrapper::before {
+    opacity: 0.35;
+}
+
+html[data-theme='light'] .userButtonWrapper {
+    background: rgba(255, 255, 255, 0.65);
+}
+
+html[data-theme='light'] .inputBox {
+    background: rgba(255, 255, 255, 0.92);
+}
+
+html[data-theme='light'] .home-hero-title-accent {
+    filter: saturate(1.05);
 }

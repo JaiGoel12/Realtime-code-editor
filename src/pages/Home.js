@@ -3,6 +3,7 @@ import { v4 as uuidV4 } from 'uuid';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { useUser, UserButton } from '@clerk/clerk-react';
+import ThemeToggle from '../components/ThemeToggle';
 
 const Home = () => {
     const navigate = useNavigate();
@@ -77,8 +78,11 @@ const Home = () => {
                                 src="/code-sync.png"
                                 alt=""
                             />
-                            <div className="userButtonWrapper">
-                                <UserButton />
+                            <div className="home-top-actions">
+                                <ThemeToggle />
+                                <div className="userButtonWrapper">
+                                    <UserButton />
+                                </div>
                             </div>
                         </div>
 

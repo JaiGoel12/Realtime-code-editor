@@ -20,6 +20,9 @@ app.use((req, res, next) => {
 });
 
 const userSocketMap = {};
+/** @type {Map<string, string>} */
+const roomPins = new Map();
+
 function getAllConnectedClients(roomId) {
     // Map
     return Array.from(io.sockets.adapter.rooms.get(roomId) || []).map(
@@ -38,6 +41,9 @@ io.on('connection', (socket) => {
     socket.on(ACTIONS.JOIN, ({ roomId, username }) => {
         userSocketMap[socket.id] = username;
         socket.join(roomId);
+        socket.emit(ACTIONS.ROOM_PIN_SYNC, {
+            note: roomPins.get(roomId) || '',
+        });
         const clients = getAllConnectedClients(roomId);
         clients.forEach(({ socketId }) => {
             io.to(socketId).emit(ACTIONS.JOINED, {
@@ -89,6 +95,16 @@ io.on('connection', (socket) => {
         socket.in(roomId).emit(ACTIONS.LANGUAGE_CHANGE, {
             newLanguage,
         });
+    });
+
+    socket.on(ACTIONS.ROOM_PIN_SET, ({ roomId, note }) => {
+        if (!roomId) return;
+        const cleaned =
+            typeof note === 'string'
+                ? note.replace(/\s+/g, ' ').trim().slice(0, 200)
+                : '';
+        roomPins.set(roomId, cleaned);
+        io.to(roomId).emit(ACTIONS.ROOM_PIN_SYNC, { note: cleaned });
     });
 
     socket.on('disconnecting', () => {

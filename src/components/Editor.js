@@ -24,7 +24,20 @@ import ACTIONS from '../Actions';
 import { getUserColor, removeUserColor } from '../utils/colors';
 import { getLanguageMode } from '../utils/languages';
 
-const Editor = React.forwardRef(({ socketRef, roomId, onCodeChange, username, language = 'javascript', onLanguageChange, fontSize = 16 }, ref) => {
+const Editor = React.forwardRef(
+    (
+        {
+            socketRef,
+            roomId,
+            onCodeChange,
+            username,
+            language = 'javascript',
+            onLanguageChange,
+            fontSize = 16,
+            followSocketId = null,
+        },
+        ref
+    ) => {
     const editorRef = useRef(null);
     const isRemoteChangeRef = useRef(false);
     const remoteCursorsRef = useRef({});
@@ -32,6 +45,11 @@ const Editor = React.forwardRef(({ socketRef, roomId, onCodeChange, username, la
     const lastTypingEmitRef = useRef(0);
     const handlersRef = useRef({});
     const listenersSetupRef = useRef(false);
+    const followSocketIdRef = useRef(followSocketId);
+
+    useEffect(() => {
+        followSocketIdRef.current = followSocketId;
+    }, [followSocketId]);
 
     // Expose editor instance via ref
     React.useImperativeHandle(ref, () => ({
@@ -228,6 +246,21 @@ const Editor = React.forwardRef(({ socketRef, roomId, onCodeChange, username, la
                     remoteCursorsRef.current[socketId] = marker;
                 } catch (error) {
                     // Silently handle errors
+                }
+
+                if (
+                    followSocketIdRef.current &&
+                    socketId === followSocketIdRef.current &&
+                    editorRef.current
+                ) {
+                    try {
+                        editorRef.current.scrollIntoView(
+                            { line: cursor.line, ch: cursor.ch },
+                            120
+                        );
+                    } catch (e) {
+                        // ignore scroll errors
+                    }
                 }
             };
 

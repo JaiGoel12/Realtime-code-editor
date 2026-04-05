@@ -147,3 +147,131 @@
 .cm-s-codesync .CodeMirror-hscrollbar::-webkit-scrollbar-thumb:hover {
     background: rgba(138, 180, 248, 0.38);
 }
+
+/* Light theme — matches editor chrome */
+html[data-theme='light'] .cm-s-codesync.CodeMirror,
+html[data-theme='light'] .cm-s-codesync .CodeMirror-gutters {
+    background-color: #f6f8fc !important;
+    color: #0f172a !important;
+}
+
+html[data-theme='light'] .cm-s-codesync .CodeMirror-gutters {
+    background-color: #eef2f8 !important;
+}
+
+html[data-theme='light'] .cm-s-codesync .CodeMirror-linenumber {
+    color: #7a8799;
+}
+
+html[data-theme='light'] .cm-s-codesync .CodeMirror-cursor {
+    border-left-color: #1558c0;
+}
+
+html[data-theme='light'] .cm-s-codesync .CodeMirror-selected {
+    background: rgba(21, 88, 192, 0.12) !important;
+}
+
+html[data-theme='light'] .cm-s-codesync .CodeMirror-line::selection,
+html[data-theme='light'] .cm-s-codesync .CodeMirror-line > span::selection,
+html[data-theme='light'] .cm-s-codesync .CodeMirror-line > span > span::selection {
+    background: rgba(21, 88, 192, 0.15);
+}
+
+html[data-theme='light'] .cm-s-codesync .CodeMirror-line::-moz-selection,
+html[data-theme='light'] .cm-s-codesync .CodeMirror-line > span::-moz-selection,
+html[data-theme='light'] .cm-s-codesync .CodeMirror-line > span > span::-moz-selection {
+    background: rgba(21, 88, 192, 0.15);
+}
+
+html[data-theme='light'] .cm-s-codesync .CodeMirror-activeline-background {
+    background: rgba(21, 88, 192, 0.05);
+}
+
+html[data-theme='light'] .cm-s-codesync .CodeMirror-focused .CodeMirror-activeline-background {
+    background: rgba(21, 88, 192, 0.07);
+}
+
+html[data-theme='light'] .cm-s-codesync span.cm-comment {
+    color: #64748b;
+}
+
+html[data-theme='light'] .cm-s-codesync span.cm-string,
+html[data-theme='light'] .cm-s-codesync span.cm-string-2 {
+    color: #0066a3;
+}
+
+html[data-theme='light'] .cm-s-codesync span.cm-number {
+    color: #5c3dc4;
+}
+
+html[data-theme='light'] .cm-s-codesync span.cm-variable {
+    color: #0f172a;
+}
+
+html[data-theme='light'] .cm-s-codesync span.cm-variable-2 {
+    color: #334155;
+}
+
+html[data-theme='light'] .cm-s-codesync span.cm-variable-3,
+html[data-theme='light'] .cm-s-codesync span.cm-type {
+    color: #0b5fa8;
+}
+
+html[data-theme='light'] .cm-s-codesync span.cm-def {
+    color: #1558c0;
+}
+
+html[data-theme='light'] .cm-s-codesync span.cm-keyword {
+    color: #1248a8;
+}
+
+html[data-theme='light'] .cm-s-codesync span.cm-operator {
+    color: #a21caf;
+}
+
+html[data-theme='light'] .cm-s-codesync span.cm-atom {
+    color: #5c3dc4;
+}
+
+html[data-theme='light'] .cm-s-codesync span.cm-meta {
+    color: #64748b;
+}
+
+html[data-theme='light'] .cm-s-codesync span.cm-tag {
+    color: #1e6fd4;
+}
+
+html[data-theme='light'] .cm-s-codesync span.cm-attribute {
+    color: #0066a3;
+}
+
+html[data-theme='light'] .cm-s-codesync span.cm-qualifier {
+    color: #1558c0;
+}
+
+html[data-theme='light'] .cm-s-codesync span.cm-property {
+    color: #1a6fd4;
+}
+
+html[data-theme='light'] .cm-s-codesync span.cm-builtin {
+    color: #3b6fd4;
+}
+
+html[data-theme='light'] .cm-s-codesync .CodeMirror-matchingbracket {
+    color: #0f172a !important;
+}
+
+html[data-theme='light'] .cm-s-codesync .CodeMirror-scrollbar-filler,
+html[data-theme='light'] .cm-s-codesync .CodeMirror-gutter-filler {
+    background-color: #eef2f8;
+}
+
+html[data-theme='light'] .cm-s-codesync .CodeMirror-vscrollbar::-webkit-scrollbar-thumb,
+html[data-theme='light'] .cm-s-codesync .CodeMirror-hscrollbar::-webkit-scrollbar-thumb {
+    background: rgba(21, 88, 192, 0.2);
+}
+
+html[data-theme='light'] .cm-s-codesync .CodeMirror-vscrollbar::-webkit-scrollbar-thumb:hover,
+html[data-theme='light'] .cm-s-codesync .CodeMirror-hscrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(21, 88, 192, 0.32);
+}

@@ -1,0 +1,269 @@
+/* Auth shell — matches home / editor ambient + glass panel */
+
+.cs-auth-page {
+    position: relative;
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: clamp(1.25rem, 4vw, 2.5rem);
+    overflow-x: hidden;
+    color: var(--cs-text);
+    font-family: var(--cs-font-ui);
+}
+
+.cs-auth-page::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background: radial-gradient(ellipse 120% 70% at 50% -40%, rgba(138, 180, 248, 0.18), transparent 58%),
+        radial-gradient(ellipse 80% 50% at 100% 0%, rgba(66, 133, 244, 0.1), transparent 50%),
+        radial-gradient(ellipse 70% 45% at 0% 100%, rgba(90, 208, 255, 0.08), transparent 48%),
+        var(--cs-bg-void);
+}
+
+html[data-theme='light'] .cs-auth-page::before {
+    background: radial-gradient(ellipse 120% 70% at 50% -40%, rgba(66, 133, 244, 0.12), transparent 58%),
+        radial-gradient(ellipse 80% 50% at 100% 0%, rgba(26, 86, 196, 0.07), transparent 50%),
+        radial-gradient(ellipse 70% 45% at 0% 100%, rgba(0, 102, 163, 0.06), transparent 48%),
+        var(--cs-bg-void);
+}
+
+.cs-auth-page::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    opacity: 0.32;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    mix-blend-mode: overlay;
+}
+
+html[data-theme='light'] .cs-auth-page::after {
+    opacity: 0.2;
+    mix-blend-mode: multiply;
+}
+
+.cs-auth-ambient {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.cs-auth-orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.85;
+    animation: cs-float 22s ease-in-out infinite;
+}
+
+.cs-auth-orb--a {
+    width: min(52vw, 420px);
+    height: min(52vw, 420px);
+    top: -16%;
+    left: -10%;
+    background: rgba(66, 133, 244, 0.22);
+}
+
+.cs-auth-orb--b {
+    width: min(44vw, 360px);
+    height: min(44vw, 360px);
+    bottom: -18%;
+    right: -8%;
+    background: rgba(90, 208, 255, 0.14);
+    animation-delay: -7s;
+}
+
+.cs-auth-orb--c {
+    width: min(34vw, 280px);
+    height: min(34vw, 280px);
+    top: 40%;
+    right: 5%;
+    background: rgba(197, 168, 255, 0.1);
+    animation-delay: -14s;
+}
+
+html[data-theme='light'] .cs-auth-orb--a {
+    background: rgba(66, 133, 244, 0.14);
+}
+
+html[data-theme='light'] .cs-auth-orb--b {
+    background: rgba(0, 102, 163, 0.1);
+}
+
+html[data-theme='light'] .cs-auth-orb--c {
+    background: rgba(92, 61, 196, 0.08);
+}
+
+.cs-auth-grid {
+    position: absolute;
+    inset: 0;
+    opacity: 0.45;
+    background-image: linear-gradient(rgba(138, 180, 248, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(138, 180, 248, 0.04) 1px, transparent 1px);
+    background-size: 56px 56px;
+    mask-image: radial-gradient(ellipse 75% 65% at 50% 45%, black 18%, transparent 72%);
+}
+
+html[data-theme='light'] .cs-auth-grid {
+    background-image: linear-gradient(rgba(21, 88, 192, 0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(21, 88, 192, 0.06) 1px, transparent 1px);
+}
+
+.cs-auth-vignette {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 88% 78% at 50% 50%, transparent 0%, rgba(3, 5, 8, 0.62) 100%);
+    pointer-events: none;
+}
+
+html[data-theme='light'] .cs-auth-vignette {
+    background: radial-gradient(ellipse 88% 78% at 50% 50%, transparent 38%, rgba(255, 255, 255, 0.82) 100%);
+}
+
+.cs-auth-shell {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 440px;
+    animation: cs-fade-up 0.65s var(--cs-ease-out) both;
+}
+
+.cs-auth-panel {
+    position: relative;
+    padding: 1.35rem 1.35rem 1.5rem;
+    border-radius: var(--cs-radius-lg);
+    background: linear-gradient(
+        165deg,
+        rgba(14, 18, 32, 0.55) 0%,
+        rgba(8, 10, 18, 0.68) 100%
+    );
+    backdrop-filter: blur(26px) saturate(150%);
+    -webkit-backdrop-filter: blur(26px) saturate(150%);
+    border: 1px solid rgba(138, 180, 248, 0.14);
+    box-shadow: var(--cs-shadow-soft), 0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+}
+
+html[data-theme='light'] .cs-auth-panel {
+    background: linear-gradient(165deg, rgba(255, 255, 255, 0.88) 0%, rgba(236, 242, 252, 0.92) 100%);
+    border: 1px solid rgba(21, 88, 192, 0.11);
+    box-shadow: var(--cs-shadow-soft), 0 0 0 1px rgba(255, 255, 255, 0.85) inset;
+}
+
+.cs-auth-panel::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(
+        145deg,
+        rgba(138, 180, 248, 0.45),
+        rgba(66, 133, 244, 0.15),
+        rgba(90, 208, 255, 0.18),
+        rgba(197, 168, 255, 0.12)
+    );
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    opacity: 0.5;
+}
+
+html[data-theme='light'] .cs-auth-panel::before {
+    opacity: 0.35;
+}
+
+.cs-auth-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.cs-auth-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.65rem;
+    text-decoration: none;
+    color: inherit;
+    min-width: 0;
+}
+
+.cs-auth-brand img {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    object-fit: contain;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+    flex-shrink: 0;
+}
+
+html[data-theme='light'] .cs-auth-brand img {
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.12);
+}
+
+.cs-auth-brand-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    min-width: 0;
+}
+
+.cs-auth-brand-eyebrow {
+    font-size: 0.58rem;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--cs-cyan);
+}
+
+.cs-auth-brand-name {
+    font-family: var(--cs-font-display);
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.15;
+    color: var(--cs-text);
+}
+
+.cs-auth-lede {
+    margin: 0 0 1rem;
+    font-size: 0.8rem;
+    line-height: 1.5;
+    color: var(--cs-text-muted);
+}
+
+.cs-auth-clerk {
+    position: relative;
+    z-index: 1;
+}
+
+/*
+ * Clerk does not expose a supported way to remove the “Secured by Clerk” row on every plan.
+ * A soft, theme-matched band covers only the bottom strip so “Sign up” / links above stay visible.
+ */
+.cs-auth-clerk::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 2.85rem;
+    z-index: 8;
+    pointer-events: none;
+    background: linear-gradient(
+        to top,
+        var(--cs-clerk-footer-mask) 0%,
+        var(--cs-clerk-footer-mask) 58%,
+        transparent 100%
+    );
+}

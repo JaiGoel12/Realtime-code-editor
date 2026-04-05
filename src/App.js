@@ -10,7 +10,9 @@ import {
 import { Toaster } from 'react-hot-toast';
 import Home from './pages/Home';
 import EditorPage from './pages/EditorPage';
-import { SignedIn, SignedOut, RedirectToSignIn, useUser } from '@clerk/clerk-react';
+import SignInPage from './pages/SignInPage';
+import SignUpPage from './pages/SignUpPage';
+import { SignedIn, SignedOut, useUser } from '@clerk/clerk-react';
 import { useEffect } from 'react';
 import { Analytics } from '@vercel/analytics/react';
 
@@ -20,23 +22,44 @@ function RoomToEditorRedirect() {
 }
 
 /**
- * Keeps the current URL (e.g. /room/:id) so after Clerk sign-in/sign-up
- * the user lands back here and enters the editor automatically.
+ * Signed-out users get themed in-app Clerk pages. `Navigate` preserves `location`
+ * so after sign-in/sign-up they return to the same path (e.g. /room/:id invite flow).
  */
 function ClerkGate() {
     const location = useLocation();
-    const redirectUrl = `${window.location.origin}${location.pathname}${location.search}`;
 
     return (
         <>
             <SignedOut>
-                <RedirectToSignIn redirectUrl={redirectUrl} />
+                <Routes>
+                    <Route path="/sign-in/*" element={<SignInPage />} />
+                    <Route path="/sign-up/*" element={<SignUpPage />} />
+                    <Route
+                        path="*"
+                        element={
+                            <Navigate
+                                to="/sign-in"
+                                replace
+                                state={{ from: location }}
+                            />
+                        }
+                    />
+                </Routes>
             </SignedOut>
             <SignedIn>
                 <Routes>
                     <Route path="/" element={<Home />} />
                     <Route path="/room/:roomId" element={<RoomToEditorRedirect />} />
                     <Route path="/editor/:roomId" element={<EditorPage />} />
+                    <Route
+                        path="/sign-in/*"
+                        element={<Navigate to="/" replace />}
+                    />
+                    <Route
+                        path="/sign-up/*"
+                        element={<Navigate to="/" replace />}
+                    />
+                    <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
             </SignedIn>
         </>
@@ -60,10 +83,6 @@ function App() {
                     toastOptions={{
                         className: 'cs-toast-base',
                         duration: 3200,
-                        style: {
-                            background: 'rgba(22, 24, 38, 0.92)',
-                            color: '#e8eaf4',
-                        },
                         success: {
                             iconTheme: {
                                 primary: '#8ab4f8',

@@ -217,12 +217,172 @@
     letter-spacing: 0.06em;
 }
 
+/* Room pin (shared goal line) */
+.cs-room-pin {
+    margin: 0 0.85rem 0.5rem;
+    padding: 0.75rem 0.85rem 0.85rem;
+    border-radius: 16px;
+    background: rgba(138, 180, 248, 0.06);
+    border: 1px solid rgba(138, 180, 248, 0.14);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.cs-room-pin-head {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.cs-room-pin-label {
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--cs-cyan);
+}
+
+.cs-room-pin-hint {
+    font-size: 0.62rem;
+    color: var(--cs-text-muted);
+    letter-spacing: 0.02em;
+}
+
+.cs-room-pin-preview {
+    margin: 0;
+    font-size: 0.8rem;
+    line-height: 1.45;
+    color: var(--cs-text);
+    word-break: break-word;
+}
+
+.cs-room-pin-preview strong {
+    font-weight: 700;
+    color: #fff;
+}
+
+.cs-room-pin-code {
+    font-family: ui-monospace, 'SF Mono', monospace;
+    font-size: 0.78em;
+    padding: 0.08em 0.28em;
+    border-radius: 6px;
+    background: rgba(90, 208, 255, 0.12);
+    border: 1px solid rgba(90, 208, 255, 0.22);
+    color: var(--cs-cyan);
+}
+
+.cs-room-pin-empty {
+    margin: 0;
+    font-size: 0.72rem;
+    color: var(--cs-text-muted);
+    font-style: italic;
+}
+
+.cs-room-pin-input {
+    width: 100%;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0.5rem 0.6rem;
+    border-radius: 12px;
+    border: 1px solid rgba(138, 180, 248, 0.2);
+    background: rgba(3, 6, 14, 0.55);
+    color: var(--cs-text);
+    font-family: var(--cs-font-ui);
+    font-size: 0.78rem;
+    line-height: 1.4;
+    resize: vertical;
+    min-height: 2.6rem;
+}
+
+.cs-room-pin-input::placeholder {
+    color: rgba(138, 180, 248, 0.35);
+}
+
+.cs-room-pin-input:focus {
+    outline: none;
+    border-color: rgba(90, 208, 255, 0.45);
+    box-shadow: 0 0 0 1px rgba(90, 208, 255, 0.15);
+}
+
+.cs-btn--pin {
+    padding: 0.55rem 0.75rem;
+    font-size: 0.75rem;
+    color: var(--cs-text);
+    background: rgba(138, 180, 248, 0.12);
+    border: 1px solid rgba(138, 180, 248, 0.28);
+    box-shadow: none;
+}
+
+.cs-btn--pin:hover {
+    border-color: rgba(138, 180, 248, 0.45);
+    background: rgba(138, 180, 248, 0.18);
+}
+
+.cs-sound-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.35rem 0.15rem;
+    margin-bottom: 0.1rem;
+    cursor: pointer;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--cs-text-muted);
+    user-select: none;
+}
+
+.cs-sound-toggle input {
+    width: 15px;
+    height: 15px;
+    accent-color: var(--cs-accent);
+    cursor: pointer;
+}
+
+.cs-sound-toggle-label {
+    line-height: 1.3;
+}
+
+.cs-sidebar-footer-settings {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.65rem 1rem;
+    margin-bottom: 0.15rem;
+}
+
+.cs-sidebar-theme-toggle {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    flex-shrink: 0;
+}
+
 .cs-sidebar-main {
     padding: 0.35rem 1.15rem 1.15rem;
     flex: 1;
     overflow-y: auto;
     scrollbar-width: thin;
     scrollbar-color: rgba(138, 180, 248, 0.25) transparent;
+}
+
+.cs-sidebar-follow-hint {
+    margin: 0 0 0.75rem;
+    font-size: 0.68rem;
+    line-height: 1.5;
+    color: var(--cs-text-muted);
+}
+
+.cs-kbd {
+    display: inline-block;
+    padding: 0.12rem 0.38rem;
+    border-radius: 6px;
+    font-size: 0.62rem;
+    font-weight: 700;
+    font-family: ui-monospace, monospace;
+    color: var(--cs-accent);
+    background: rgba(138, 180, 248, 0.12);
+    border: 1px solid rgba(138, 180, 248, 0.22);
 }
 
 .cs-sidebar-section-title {
@@ -301,6 +461,25 @@
     border-color: rgba(138, 180, 248, 0.45);
     box-shadow: 0 0 32px var(--cs-accent-glow), inset 0 1px 0 rgba(255, 255, 255, 0.06);
     animation: cs-collab-glow 2.2s ease-in-out infinite alternate;
+}
+
+.cs-collab-row:not(.cs-collab-row--self) {
+    cursor: pointer;
+}
+
+.cs-collab-row:not(.cs-collab-row--self):focus-visible {
+    outline: 2px solid var(--cs-accent);
+    outline-offset: 2px;
+}
+
+.cs-collab-row--self {
+    cursor: default;
+    opacity: 0.95;
+}
+
+.cs-collab-row--follow {
+    border-color: rgba(90, 208, 255, 0.5);
+    box-shadow: 0 0 24px rgba(90, 208, 255, 0.2), inset 0 0 0 1px rgba(90, 208, 255, 0.15);
 }
 
 @keyframes cs-collab-glow {
@@ -461,6 +640,28 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.cs-client-you {
+    display: block;
+    font-size: 0.6rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--cs-text-muted);
+}
+
+.cs-client-follow-pill {
+    display: inline-block;
+    margin-top: 0.05rem;
+    padding: 0.15rem 0.45rem;
+    border-radius: 6px;
+    font-size: 0.58rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #0a1628;
+    background: linear-gradient(135deg, var(--cs-cyan), var(--cs-accent-dim));
 }
 
 .cs-client-typing {
@@ -793,6 +994,55 @@
     min-width: 0;
 }
 
+/* Focus / Zen — full-width editor, sidebar hidden */
+.cs-editor-root--zen .cs-editor-sidebar {
+    display: none;
+}
+
+.cs-editor-root--zen .cs-editor-main {
+    padding: 12px 18px 18px;
+    max-width: min(1200px, 100%);
+    margin: 0 auto;
+    width: 100%;
+}
+
+.cs-zen-exit {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.75rem 1.15rem;
+    border-radius: 999px;
+    border: 1px solid rgba(138, 180, 248, 0.35);
+    background: rgba(12, 16, 28, 0.92);
+    backdrop-filter: blur(16px);
+    color: var(--cs-text);
+    font-family: var(--cs-font-ui);
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5), 0 0 24px var(--cs-accent-glow);
+    transition: transform 0.2s var(--cs-ease-spring), box-shadow 0.2s ease;
+}
+
+.cs-zen-exit:hover {
+    transform: translateY(-2px);
+}
+
+.cs-zen-exit-hint {
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    padding: 0.2rem 0.45rem;
+    border-radius: 8px;
+    color: var(--cs-text-muted);
+    background: rgba(138, 180, 248, 0.1);
+    border: 1px solid rgba(138, 180, 248, 0.2);
+}
+
 @media (max-width: 900px) {
     .cs-editor-root {
         flex-direction: column;
@@ -836,4 +1086,128 @@
     .cs-editor-cm-wrap {
         border-radius: 18px;
     }
+
+    .cs-editor-root--zen .cs-editor-main {
+        max-width: 100%;
+        padding: 10px 12px 12px;
+    }
+
+    .cs-zen-exit {
+        bottom: 1rem;
+        right: 1rem;
+        left: 1rem;
+        justify-content: center;
+    }
+}
+
+/* ─── Light theme (editor chrome) ─── */
+html[data-theme='light'] .cs-editor-root::before {
+    opacity: 0.16;
+}
+
+html[data-theme='light'] .cs-editor-vignette {
+    background: radial-gradient(ellipse 90% 80% at 50% 50%, transparent 38%, rgba(255, 255, 255, 0.75) 100%);
+}
+
+html[data-theme='light'] .cs-editor-orb--1 {
+    background: rgba(66, 133, 244, 0.14);
+}
+
+html[data-theme='light'] .cs-editor-orb--2 {
+    background: rgba(0, 102, 163, 0.1);
+}
+
+html[data-theme='light'] .cs-editor-orb--3 {
+    background: rgba(92, 61, 196, 0.08);
+}
+
+html[data-theme='light'] .cs-editor-grid {
+    background-image: linear-gradient(rgba(21, 88, 192, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(21, 88, 192, 0.05) 1px, transparent 1px);
+}
+
+html[data-theme='light'] .cs-editor-sidebar {
+    background: linear-gradient(165deg, rgba(255, 255, 255, 0.94) 0%, rgba(236, 242, 252, 0.96) 100%);
+    border: 1px solid rgba(21, 88, 192, 0.11);
+    box-shadow: 0 4px 0 0 rgba(255, 255, 255, 0.9) inset, 0 18px 48px rgba(15, 23, 42, 0.07),
+        0 0 0 1px rgba(255, 255, 255, 0.65) inset;
+}
+
+html[data-theme='light'] .cs-editor-sidebar::before {
+    opacity: 0.38;
+    background: linear-gradient(
+        160deg,
+        rgba(21, 88, 192, 0.28),
+        rgba(66, 133, 244, 0.12) 40%,
+        rgba(0, 102, 163, 0.12) 70%,
+        transparent 100%
+    );
+}
+
+html[data-theme='light'] .cs-sidebar-brand img {
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12);
+}
+
+html[data-theme='light'] .cs-room-pin {
+    background: rgba(21, 88, 192, 0.05);
+    border-color: rgba(21, 88, 192, 0.12);
+}
+
+html[data-theme='light'] .cs-room-pin-input {
+    background: rgba(255, 255, 255, 0.92);
+    border-color: rgba(21, 88, 192, 0.14);
+}
+
+html[data-theme='light'] .cs-room-pin-preview strong {
+    color: var(--cs-text);
+}
+
+html[data-theme='light'] .cs-collab-row {
+    background: rgba(21, 88, 192, 0.04);
+    border-color: rgba(21, 88, 192, 0.12);
+}
+
+html[data-theme='light'] .cs-collab-row:hover {
+    background: rgba(21, 88, 192, 0.08);
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+}
+
+html[data-theme='light'] .cs-toolbar {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(240, 245, 252, 0.92) 100%);
+    border: 1px solid rgba(21, 88, 192, 0.12);
+    box-shadow: 0 14px 40px rgba(15, 23, 42, 0.08), 0 1px 0 rgba(255, 255, 255, 0.9) inset;
+}
+
+html[data-theme='light'] .cs-toolbar-cluster {
+    background: rgba(21, 88, 192, 0.04);
+    border-color: rgba(21, 88, 192, 0.08);
+}
+
+html[data-theme='light'] .cs-select {
+    background: rgba(255, 255, 255, 0.92);
+    border-color: rgba(21, 88, 192, 0.14);
+}
+
+html[data-theme='light'] .cs-toolbar-btn {
+    background: rgba(255, 255, 255, 0.75);
+    border-color: rgba(21, 88, 192, 0.12);
+}
+
+html[data-theme='light'] .cs-editor-cm-wrap {
+    background: #f6f8fc;
+    border: 1px solid rgba(21, 88, 192, 0.12);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.8) inset, 0 20px 60px rgba(15, 23, 42, 0.06),
+        0 -1px 0 rgba(21, 88, 192, 0.05) inset;
+}
+
+html[data-theme='light'] .cs-zen-exit {
+    background: rgba(255, 255, 255, 0.94);
+    border-color: rgba(21, 88, 192, 0.2);
+    color: var(--cs-text);
+    box-shadow: 0 12px 36px rgba(15, 23, 42, 0.12), 0 0 20px var(--cs-accent-glow);
+}
+
+html[data-theme='light'] .cs-zen-exit-hint {
+    background: rgba(21, 88, 192, 0.08);
+    border-color: rgba(21, 88, 192, 0.15);
 }

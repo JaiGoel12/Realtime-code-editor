@@ -10,6 +10,8 @@ const ACTIONS = {
     CURSOR_UPDATE: 'cursor-update',
     LANGUAGE_CHANGE: 'language-change',
     TYPING: 'typing',
+    ROOM_PIN_SET: 'room-pin-set',
+    ROOM_PIN_SYNC: 'room-pin-sync',
 };
 
 module.exports = ACTIONS;

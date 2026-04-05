@@ -12,6 +12,8 @@ const EditorToolbar = ({
     fontSize,
     onClearCode,
     onFormatCode,
+    zenMode = false,
+    onZenToggle,
 }) => {
     const [showStats, setShowStats] = useState(false);
 
@@ -120,6 +122,20 @@ const EditorToolbar = ({
                 </div>
 
                 <div className="cs-toolbar-right cs-toolbar-cluster">
+                    {onZenToggle && (
+                        <button
+                            type="button"
+                            className={
+                                'cs-toolbar-btn' +
+                                (zenMode ? ' cs-toolbar-btn--active' : '')
+                            }
+                            onClick={onZenToggle}
+                            title="Hide sidebar for deep work (Esc to exit)"
+                        >
+                            Focus
+                        </button>
+                    )}
+
                     <button
                         type="button"
                         className={
