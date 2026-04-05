@@ -6,8 +6,7 @@ const LanguageSelector = ({ currentLanguage, onLanguageChange, socketRef, roomId
     const handleLanguageChange = (e) => {
         const newLanguage = e.target.value;
         onLanguageChange(newLanguage);
-        
-        // Broadcast language change to other users
+
         if (socketRef.current && socketRef.current.connected) {
             socketRef.current.emit(ACTIONS.LANGUAGE_CHANGE, {
                 roomId,
@@ -17,34 +16,13 @@ const LanguageSelector = ({ currentLanguage, onLanguageChange, socketRef, roomId
     };
 
     return (
-        <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '8px',
-            marginBottom: '10px'
-        }}>
-            <label htmlFor="language-select" style={{ 
-                fontSize: '14px', 
-                fontWeight: '500',
-                color: '#fff'
-            }}>
-                Language:
-            </label>
+        <div className="cs-lang-field">
+            <label htmlFor="language-select">Language</label>
             <select
                 id="language-select"
+                className="cs-select cs-select--lang"
                 value={currentLanguage}
                 onChange={handleLanguageChange}
-                style={{
-                    padding: '6px 12px',
-                    borderRadius: '4px',
-                    border: '1px solid #444',
-                    backgroundColor: '#282a36',
-                    color: '#f8f8f2',
-                    fontSize: '14px',
-                    cursor: 'pointer',
-                    outline: 'none',
-                    minWidth: '150px'
-                }}
             >
                 {LANGUAGES.map((lang) => (
                     <option key={lang.value} value={lang.value}>
@@ -57,4 +35,3 @@ const LanguageSelector = ({ currentLanguage, onLanguageChange, socketRef, roomId
 };
 
 export default LanguageSelector;
-

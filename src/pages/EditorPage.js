@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
+import '../styles/editor-ui.css';
 import toast from 'react-hot-toast';
 import ACTIONS from '../Actions';
 import Client from '../components/Client';
@@ -173,12 +174,22 @@ const EditorPage = () => {
     };
 
     const handleClearCode = () => {
-        if (window.confirm('Are you sure you want to clear all code? This action cannot be undone.')) {
-            if (editorRef.current) {
-                editorRef.current.setValue('');
-                handleCodeChange('');
-                toast.success('Code cleared!');
-            }
+        if (
+            !window.confirm(
+                'Clear all code for everyone in this room? This cannot be undone.'
+            )
+        ) {
+            return;
+        }
+        if (socketRef.current?.connected) {
+            socketRef.current.emit(ACTIONS.CLEAR_CODE, { roomId });
+            toast.success('Code cleared for everyone in the room');
+        } else {
+            toast.success('Code cleared locally');
+        }
+        if (editorRef.current) {
+            editorRef.current.setValue('');
+            handleCodeChange('');
         }
     };
 
@@ -300,179 +311,91 @@ const EditorPage = () => {
 
     if (!isLoaded) {
         return (
-            <div
-                style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    height: '100vh',
-                    backgroundColor: '#0d1117',
-                    color: '#a0a0a0',
-                    fontSize: '15px',
-                }}
-            >
-                Loading editor…
+            <div className="cs-editor-loading">
+                <div className="cs-loader-ring" aria-hidden />
+                <span>Loading editor…</span>
             </div>
         );
     }
 
     return (
-        <div style={{
-            display: 'flex',
-            height: '100vh',
-            backgroundColor: '#0d1117',
-            overflow: 'hidden'
-        }}>
-            {/* Modern Sidebar */}
-            <div style={{
-                width: '280px',
-                background: 'linear-gradient(180deg, #1c1e29 0%, #161821 100%)',
-                borderRight: '2px solid #2d2d44',
-                display: 'flex',
-                flexDirection: 'column',
-                boxShadow: '4px 0 20px rgba(0,0,0,0.3)'
-            }}>
-                <div style={{
-                    padding: '20px',
-                    borderBottom: '2px solid #2d2d44'
-                }}>
-                    <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '12px',
-                        marginBottom: '20px'
-                    }}>
-                        <img
-                            src="/code-sync.png"
-                            alt="logo"
-                            style={{ height: '50px', borderRadius: '8px' }}
-                        />
-                        <div>
-                            <h2 style={{
-                                margin: 0,
-                                fontSize: '18px',
-                                color: '#4aed88',
-                                fontWeight: '700'
-                            }}>CodeSync</h2>
-                            <div style={{
-                                fontSize: '11px',
-                                color: '#888',
-                                marginTop: '2px'
-                            }}>Real-time Editor</div>
+        <div className="cs-editor-root">
+            <div className="cs-editor-ambient" aria-hidden>
+                <div className="cs-editor-orb cs-editor-orb--1" />
+                <div className="cs-editor-orb cs-editor-orb--2" />
+                <div className="cs-editor-orb cs-editor-orb--3" />
+                <div className="cs-editor-grid" />
+                <div className="cs-editor-vignette" />
+            </div>
+
+            <aside className="cs-editor-sidebar">
+                <div className="cs-sidebar-header">
+                    <div className="cs-sidebar-brand-card">
+                        <div className="cs-sidebar-brand">
+                            <img src="/code-sync.png" alt="CodeSync" />
+                            <div className="cs-sidebar-brand-text">
+                                <span className="cs-sidebar-eyebrow">CodeSync</span>
+                                <h2>
+                                    Live{' '}
+                                    <span className="cs-sidebar-title-accent">session</span>
+                                </h2>
+                                <span className="cs-sidebar-tagline">
+                                    Realtime collaboration
+                                </span>
+                            </div>
+                        </div>
+                        <div className="cs-sidebar-status-row">
+                            <ConnectionStatus socketRef={socketRef} />
+                            <h3 className="cs-sidebar-section-title">
+                                <span className="cs-live-dot" aria-hidden />
+                                <span className="cs-sidebar-section-label">Squad</span>
+                                <span className="cs-sidebar-section-count">
+                                    {clients.length}
+                                </span>
+                            </h3>
                         </div>
                     </div>
-                    <ConnectionStatus socketRef={socketRef} />
                 </div>
 
-                <div style={{
-                    padding: '20px',
-                    flex: 1,
-                    overflowY: 'auto'
-                }}>
-                    <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        marginBottom: '16px'
-                    }}>
-                        <h3 style={{
-                            margin: 0,
-                            fontSize: '14px',
-                            color: '#a0a0a0',
-                            fontWeight: '600',
-                            textTransform: 'uppercase',
-                            letterSpacing: '1px'
-                        }}>
-                            👥 Collaborators ({clients.length})
-                        </h3>
-                    </div>
-                    <div style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '12px'
-                    }}>
+                <div className="cs-sidebar-main">
+                    <div className="cs-collab-list">
                         {clients.map((client) => {
                             const isTyping = typingSocketIds.has(client.socketId);
                             return (
-                            <div key={client.socketId} style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '12px',
-                                padding: '10px',
-                                borderRadius: '8px',
-                                background: isTyping
-                                    ? 'rgba(74, 237, 136, 0.14)'
-                                    : 'rgba(74, 237, 136, 0.05)',
-                                border: isTyping
-                                    ? '2px solid rgba(74, 237, 136, 0.65)'
-                                    : '1px solid rgba(74, 237, 136, 0.2)',
-                                boxShadow: isTyping
-                                    ? '0 0 14px rgba(74, 237, 136, 0.25)'
-                                    : 'none',
-                                transition: 'all 0.2s ease'
-                            }}>
-                                <Client username={client.username} isTyping={isTyping} />
-                            </div>
+                                <div
+                                    key={client.socketId}
+                                    className={
+                                        'cs-collab-row' +
+                                        (isTyping ? ' cs-collab-row--typing' : '')
+                                    }
+                                >
+                                    <Client username={client.username} isTyping={isTyping} />
+                                </div>
                             );
                         })}
                     </div>
                 </div>
 
-                <div style={{
-                    padding: '20px',
-                    borderTop: '2px solid #2d2d44',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '12px'
-                }}>
+                <div className="cs-sidebar-footer">
                     <button
+                        type="button"
+                        className="cs-btn cs-btn--invite"
                         onClick={copyInviteLink}
-                        style={{
-                            padding: '12px',
-                            borderRadius: '8px',
-                            border: 'none',
-                            background: 'linear-gradient(135deg, #4aed88 0%, #2b824c 100%)',
-                            color: '#000',
-                            fontSize: '14px',
-                            fontWeight: '600',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s',
-                            boxShadow: '0 2px 8px rgba(74, 237, 136, 0.3)'
-                        }}
-                        onMouseOver={(e) => e.target.style.transform = 'translateY(-2px)'}
-                        onMouseOut={(e) => e.target.style.transform = 'translateY(0)'}
                     >
-                        🔗 Copy invite link
+                        <span className="cs-btn-glow" aria-hidden />
+                        <span className="cs-btn-label">Copy invite link</span>
                     </button>
                     <button
+                        type="button"
+                        className="cs-btn cs-btn--leave"
                         onClick={leaveRoom}
-                        style={{
-                            padding: '12px',
-                            borderRadius: '8px',
-                            border: 'none',
-                            background: 'linear-gradient(135deg, #ff6b6b 0%, #c92a2a 100%)',
-                            color: '#fff',
-                            fontSize: '14px',
-                            fontWeight: '600',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s',
-                            boxShadow: '0 2px 8px rgba(255, 107, 107, 0.3)'
-                        }}
-                        onMouseOver={(e) => e.target.style.transform = 'translateY(-2px)'}
-                        onMouseOut={(e) => e.target.style.transform = 'translateY(0)'}
                     >
-                        🚪 Leave Room
+                        <span className="cs-btn-label">Leave room</span>
                     </button>
                 </div>
-            </div>
+            </aside>
 
-            {/* Editor Area */}
-            <div style={{
-                flex: 1,
-                display: 'flex',
-                flexDirection: 'column',
-                overflow: 'hidden'
-            }}>
+            <div className="cs-editor-main">
                 <EditorToolbar
                     currentLanguage={language}
                     onLanguageChange={setLanguage}
@@ -484,7 +407,7 @@ const EditorPage = () => {
                     onClearCode={handleClearCode}
                     onFormatCode={handleFormatCode}
                 />
-                <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+                <div className="cs-editor-cm-wrap">
                     <Editor
                         ref={editorRef}
                         socketRef={socketRef}

@@ -3,6 +3,7 @@ const ACTIONS = {
     JOINED: 'joined',
     DISCONNECTED: 'disconnected',
     CODE_CHANGE: 'code-change',
+    CLEAR_CODE: 'clear-code',
     SYNC_CODE: 'sync-code',
     LEAVE: 'leave',
     CURSOR_POSITION: 'cursor-position',

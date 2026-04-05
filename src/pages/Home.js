@@ -6,14 +6,13 @@ import { useUser, UserButton } from '@clerk/clerk-react';
 
 const Home = () => {
     const navigate = useNavigate();
-    const { user } = useUser(); // Get user from Clerk
+    const { user } = useUser();
     const [roomId, setRoomId] = useState('');
     const [username, setUsername] = useState('');
 
-    // Automatically set the username if the user is logged in
     useEffect(() => {
         if (user && user.username) {
-            setUsername(user.username); // Set the username from Clerk
+            setUsername(user.username);
         }
     }, [user]);
 
@@ -30,7 +29,6 @@ const Home = () => {
             return;
         }
 
-        // Redirect to the editor page with username as state
         navigate(`/editor/${roomId}`, {
             state: {
                 username,
@@ -46,72 +44,92 @@ const Home = () => {
 
     return (
         <div className="homePageWrapper">
-            <div className="formWrapper">
-                <div style={{
-                    display: 'flex',
-                    flexDirection: 'row',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    width: '100%'  // Ensure the container spans full width
-                }}>
-                    <img
-                        className="homePageLogo"
-                        src="/code-sync.png"
-                        alt="code-sync-logo"
-                        style={{ height: 'auto', width: 'auto' }}  // You can specify logo size if needed
-                    />
-                    {user && (
-                        <div className="userButtonWrapper">
-                            <UserButton />
+            <div className="home-orb home-orb--a" aria-hidden />
+            <div className="home-orb home-orb--b" aria-hidden />
+            <div className="home-orb home-orb--c" aria-hidden />
+            <div className="home-grid" aria-hidden />
+            <div className="home-vignette" aria-hidden />
+
+            <div className="home-shell">
+                <section className="home-hero" aria-labelledby="home-title">
+                    <p className="home-hero-eyebrow">CodeSync</p>
+                    <h1 id="home-title" className="home-hero-title">
+                        Real-time code,
+                        <span className="home-hero-title-accent"> zero friction.</span>
+                    </h1>
+                    <div className="home-hero-beam" aria-hidden />
+                    <p className="home-hero-lede">
+                        Share one invite link. Teammates sign in, land in your room, and edit
+                        together—instantly.
+                    </p>
+                    <ul className="home-hero-points">
+                        <li>Invite links, not pasted IDs</li>
+                        <li>Live cursors and typing presence</li>
+                        <li>Built for focus, tuned for flow</li>
+                    </ul>
+                </section>
+
+                <div className="home-card-area">
+                    <div className="formWrapper">
+                        <div className="home-top-row">
+                            <img
+                                className="homePageLogo homePageLogo--panel"
+                                src="/code-sync.png"
+                                alt=""
+                            />
+                            <div className="userButtonWrapper">
+                                <UserButton />
+                            </div>
                         </div>
-                    )}
+
+                        <div className="home-badge">
+                            <span className="home-badge-dot" />
+                            Live session
+                        </div>
+                        <h2 className="mainLabel">Enter a room</h2>
+                        <div className="inputGroup">
+                            <input
+                                type="text"
+                                className="inputBox"
+                                placeholder="Room ID"
+                                onChange={(e) => setRoomId(e.target.value)}
+                                value={roomId}
+                                onKeyUp={handleInputEnter}
+                            />
+                            {user ? (
+                                <input
+                                    type="text"
+                                    className="inputBox"
+                                    placeholder="Username"
+                                    value={username}
+                                    disabled
+                                />
+                            ) : (
+                                <input
+                                    type="text"
+                                    className="inputBox"
+                                    placeholder="Display name"
+                                    onChange={(e) => setUsername(e.target.value)}
+                                    value={username}
+                                    onKeyUp={handleInputEnter}
+                                />
+                            )}
+                            <button type="button" className="btn joinBtn" onClick={joinRoom}>
+                                Join room
+                            </button>
+                            <span className="createInfo">
+                                No invite?{' '}
+                                <button
+                                    type="button"
+                                    onClick={createNewRoom}
+                                    className="createNewBtn"
+                                >
+                                    Create a new room
+                                </button>
+                            </span>
+                        </div>
+                    </div>
                 </div>
-
-                <h4 className="mainLabel">Paste invitation ROOM ID</h4>
-                <div className="inputGroup">
-                    <input
-                        type="text"
-                        className="inputBox"
-                        placeholder="ROOM ID"
-                        onChange={(e) => setRoomId(e.target.value)}
-                        value={roomId}
-                        onKeyUp={handleInputEnter}
-                    />
-                    {/* Only allow editing if no username from Clerk */}
-                    {user ? (
-                        <input
-                            type="text"
-                            className="inputBox"
-                            placeholder="USERNAME"
-                            value={username} // Display Clerk's username
-                            disabled // Disable input if username from Clerk exists
-                        />
-                    ) : (
-                        <input
-                            type="text"
-                            className="inputBox"
-                            placeholder="USERNAME"
-                            onChange={(e) => setUsername(e.target.value)}
-                            value={username}
-                            onKeyUp={handleInputEnter}
-                        />
-                    )}
-                    <button className="btn joinBtn" onClick={joinRoom}>
-                        Join
-                    </button>
-                    <span className="createInfo">
-                        If you don't have an invite then create &nbsp;
-                        <button
-                            type="button"
-                            onClick={createNewRoom}
-                            className="createNewBtn"
-                        >
-                            new room
-                        </button>
-                    </span>
-                </div>
-
-
             </div>
         </div>
     );

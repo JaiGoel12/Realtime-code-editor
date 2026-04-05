@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import Codemirror from 'codemirror';
 import 'codemirror/lib/codemirror.css';
-import 'codemirror/theme/dracula.css';
+import '../styles/codemirror-codesync.css';
 
 // Import language modes
 import 'codemirror/mode/javascript/javascript';
@@ -51,7 +51,7 @@ const Editor = React.forwardRef(({ socketRef, roomId, onCodeChange, username, la
                 document.getElementById('realtimeEditor'),
                 {
                     mode: getLanguageMode(language),
-                    theme: 'dracula',
+                    theme: 'codesync',
                     autoCloseTags: true,
                     autoCloseBrackets: true,
                     lineNumbers: true,
@@ -233,10 +233,27 @@ const Editor = React.forwardRef(({ socketRef, roomId, onCodeChange, username, la
 
             // Handle full code sync (for new users joining)
             const handleSyncCode = ({ code }) => {
-                if (!editorRef.current || !code) return;
+                if (!editorRef.current || code === undefined || code === null) return;
                 isRemoteChangeRef.current = true;
                 editorRef.current.setValue(code);
                 onCodeChange(code);
+                isRemoteChangeRef.current = false;
+            };
+
+            const handleRemoteClear = () => {
+                if (!editorRef.current) return;
+                const cursorIds = Object.keys(remoteCursorsRef.current);
+                cursorIds.forEach((sid) => {
+                    try {
+                        remoteCursorsRef.current[sid].clear();
+                    } catch (e) {
+                        // marker may already be gone
+                    }
+                    delete remoteCursorsRef.current[sid];
+                });
+                isRemoteChangeRef.current = true;
+                editorRef.current.setValue('');
+                onCodeChange('');
                 isRemoteChangeRef.current = false;
             };
 
@@ -268,6 +285,7 @@ const Editor = React.forwardRef(({ socketRef, roomId, onCodeChange, username, la
                 handleCodeChange,
                 handleCursorUpdate,
                 handleSyncCode,
+                handleRemoteClear,
                 handleLanguageChange,
                 handleDisconnected,
             };
@@ -276,6 +294,7 @@ const Editor = React.forwardRef(({ socketRef, roomId, onCodeChange, username, la
             sock.on(ACTIONS.CODE_CHANGE, handleCodeChange);
             sock.on(ACTIONS.CURSOR_UPDATE, handleCursorUpdate);
             sock.on(ACTIONS.SYNC_CODE, handleSyncCode);
+            sock.on(ACTIONS.CLEAR_CODE, handleRemoteClear);
             sock.on(ACTIONS.LANGUAGE_CHANGE, handleLanguageChange);
             sock.on(ACTIONS.DISCONNECTED, handleDisconnected);
 
@@ -314,6 +333,7 @@ const Editor = React.forwardRef(({ socketRef, roomId, onCodeChange, username, la
                 socketBoundForActions.off(ACTIONS.CODE_CHANGE, handlersRef.current.handleCodeChange);
                 socketBoundForActions.off(ACTIONS.CURSOR_UPDATE, handlersRef.current.handleCursorUpdate);
                 socketBoundForActions.off(ACTIONS.SYNC_CODE, handlersRef.current.handleSyncCode);
+                socketBoundForActions.off(ACTIONS.CLEAR_CODE, handlersRef.current.handleRemoteClear);
                 socketBoundForActions.off(ACTIONS.LANGUAGE_CHANGE, handlersRef.current.handleLanguageChange);
                 socketBoundForActions.off(ACTIONS.DISCONNECTED, handlersRef.current.handleDisconnected);
             }

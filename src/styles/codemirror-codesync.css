@@ -1,0 +1,149 @@
+/*
+ * CodeSync — CodeMirror 5 (Antigravity-adjacent cool blue void)
+ */
+
+.cm-s-codesync.CodeMirror,
+.cm-s-codesync .CodeMirror-gutters {
+    background-color: #060810 !important;
+    color: #e3e8f4 !important;
+    border: none;
+}
+
+.cm-s-codesync .CodeMirror-gutters {
+    background-color: #04060c !important;
+    border-right: none !important;
+}
+
+.cm-s-codesync .CodeMirror-linenumber {
+    color: #5a6688;
+    font-weight: 500;
+}
+
+.cm-s-codesync .CodeMirror-cursor {
+    border-left: 2px solid #8ab4f8;
+}
+
+.cm-s-codesync .CodeMirror-selected {
+    background: rgba(138, 180, 248, 0.16) !important;
+}
+
+.cm-s-codesync .CodeMirror-line::selection,
+.cm-s-codesync .CodeMirror-line > span::selection,
+.cm-s-codesync .CodeMirror-line > span > span::selection {
+    background: rgba(138, 180, 248, 0.2);
+}
+
+.cm-s-codesync .CodeMirror-line::-moz-selection,
+.cm-s-codesync .CodeMirror-line > span::-moz-selection,
+.cm-s-codesync .CodeMirror-line > span > span::-moz-selection {
+    background: rgba(138, 180, 248, 0.2);
+}
+
+.cm-s-codesync .CodeMirror-activeline-background {
+    background: rgba(66, 133, 244, 0.06);
+}
+
+.cm-s-codesync .CodeMirror-focused .CodeMirror-activeline-background {
+    background: rgba(138, 180, 248, 0.08);
+}
+
+.cm-s-codesync span.cm-comment {
+    color: #5c6b8a;
+    font-style: italic;
+}
+
+.cm-s-codesync span.cm-string,
+.cm-s-codesync span.cm-string-2 {
+    color: #a8d8ff;
+}
+
+.cm-s-codesync span.cm-number {
+    color: #c5a8ff;
+}
+
+.cm-s-codesync span.cm-variable {
+    color: #e3e8f4;
+}
+
+.cm-s-codesync span.cm-variable-2 {
+    color: #b4bdd4;
+}
+
+.cm-s-codesync span.cm-variable-3,
+.cm-s-codesync span.cm-type {
+    color: #7ec8ff;
+}
+
+.cm-s-codesync span.cm-def {
+    color: #a8c7fa;
+    font-weight: 500;
+}
+
+.cm-s-codesync span.cm-keyword {
+    color: #8ab4f8;
+    font-weight: 500;
+}
+
+.cm-s-codesync span.cm-operator {
+    color: #f0a8d8;
+}
+
+.cm-s-codesync span.cm-atom {
+    color: #b8a9ff;
+}
+
+.cm-s-codesync span.cm-meta {
+    color: #8b95b0;
+}
+
+.cm-s-codesync span.cm-tag {
+    color: #669df6;
+}
+
+.cm-s-codesync span.cm-attribute {
+    color: #5ad0ff;
+}
+
+.cm-s-codesync span.cm-qualifier {
+    color: #9fccff;
+}
+
+.cm-s-codesync span.cm-property {
+    color: #7eb8ff;
+}
+
+.cm-s-codesync span.cm-builtin {
+    color: #a8c7fa;
+}
+
+.cm-s-codesync .CodeMirror-matchingbracket {
+    color: #ffffff !important;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.cm-s-codesync .CodeMirror-nonmatchingbracket {
+    color: #ff8a98 !important;
+}
+
+.cm-s-codesync .CodeMirror-scrollbar-filler,
+.cm-s-codesync .CodeMirror-gutter-filler {
+    background-color: #04060c;
+}
+
+.cm-s-codesync .CodeMirror-vscrollbar::-webkit-scrollbar,
+.cm-s-codesync .CodeMirror-hscrollbar::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.cm-s-codesync .CodeMirror-vscrollbar::-webkit-scrollbar-thumb,
+.cm-s-codesync .CodeMirror-hscrollbar::-webkit-scrollbar-thumb {
+    background: rgba(138, 180, 248, 0.22);
+    border-radius: 4px;
+}
+
+.cm-s-codesync .CodeMirror-vscrollbar::-webkit-scrollbar-thumb:hover,
+.cm-s-codesync .CodeMirror-hscrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(138, 180, 248, 0.38);
+}

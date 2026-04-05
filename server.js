@@ -58,6 +58,12 @@ io.on('connection', (socket) => {
         });
     });
 
+    socket.on(ACTIONS.CLEAR_CODE, ({ roomId }) => {
+        if (!roomId) return;
+        // Everyone in the room (including sender) clears in sync
+        io.to(roomId).emit(ACTIONS.CLEAR_CODE);
+    });
+
     socket.on(ACTIONS.TYPING, ({ roomId }) => {
         if (!roomId) return;
         // Include sender so their own collaborator row highlights (socket.in excludes self)

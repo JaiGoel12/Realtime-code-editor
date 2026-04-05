@@ -58,9 +58,22 @@ function App() {
                 <Toaster
                     position="top-right"
                     toastOptions={{
+                        className: 'cs-toast-base',
+                        duration: 3200,
+                        style: {
+                            background: 'rgba(22, 24, 38, 0.92)',
+                            color: '#e8eaf4',
+                        },
                         success: {
-                            theme: {
-                                primary: '#4aed88',
+                            iconTheme: {
+                                primary: '#8ab4f8',
+                                secondary: '#0a1628',
+                            },
+                        },
+                        error: {
+                            iconTheme: {
+                                primary: '#ff5c6c',
+                                secondary: '#fff',
                             },
                         },
                     }}
