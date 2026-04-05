@@ -30,7 +30,7 @@ const Editor = React.forwardRef(
             socketRef,
             roomId,
             onCodeChange,
-            username,
+            displayName,
             language = 'javascript',
             onLanguageChange,
             fontSize = 16,
@@ -214,7 +214,14 @@ const Editor = React.forwardRef(
             };
 
             // Handle remote cursor positions
-            const handleCursorUpdate = ({ socketId, cursor, username: remoteUsername }) => {
+            const handleCursorUpdate = ({
+                socketId,
+                cursor,
+                displayName: remoteDisplayName,
+                username: remoteUsernameLegacy,
+            }) => {
+                const remoteUsername =
+                    remoteDisplayName || remoteUsernameLegacy || 'User';
                 if (!editorRef.current || !cursor) return;
 
                 // Don't show cursor for current user

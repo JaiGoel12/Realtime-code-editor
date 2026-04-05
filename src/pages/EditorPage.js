@@ -15,6 +15,10 @@ import {
     playLeaveChime,
 } from '../utils/sounds';
 import { renderRoomPinHtml } from '../utils/pinNote';
+import {
+    getCollaboratorDisplayName,
+    getCollaboratorImageUrl,
+} from '../utils/collaboratorProfile';
 import { useUser } from '@clerk/clerk-react';
 import {
     useLocation,
@@ -31,19 +35,14 @@ const EditorPage = () => {
     const reactNavigator = useNavigate();
     const { user, isLoaded } = useUser();
 
-    const collaboratorUsername = useMemo(() => {
-        if (location.state?.username) {
-            return location.state.username;
-        }
-        if (!user) return 'Guest';
-        const emailLocal = user.primaryEmailAddress?.emailAddress?.split('@')[0];
-        return (
-            user.username ||
-            user.firstName ||
-            emailLocal ||
-            'Guest'
-        );
-    }, [location.state?.username, user]);
+    const collaboratorDisplayName = useMemo(
+        () => getCollaboratorDisplayName(user, location.state),
+        [user, location.state]
+    );
+    const collaboratorImageUrl = useMemo(
+        () => getCollaboratorImageUrl(user),
+        [user]
+    );
     const [clients, setClients] = useState([]);
     const [typingSocketIds, setTypingSocketIds] = useState(() => new Set());
     const typingClearTimeoutsRef = useRef({});
@@ -109,17 +108,22 @@ const EditorPage = () => {
 
             socket.emit(ACTIONS.JOIN, {
                 roomId,
-                username: collaboratorUsername,
+                displayName: collaboratorDisplayName,
+                imageUrl: collaboratorImageUrl,
             });
 
             socket.on(
                 ACTIONS.JOINED,
-                ({ clients, username, socketId }) => {
+                ({ clients, displayName: joinedName, username: joinedLegacy, socketId }) => {
                     if (socketId !== socket.id) {
                         playJoinChime();
                     }
-                    if (username !== collaboratorUsername) {
-                        toast.success(`${username} joined the room.`);
+                    const joined =
+                        (typeof joinedName === 'string' && joinedName) ||
+                        (typeof joinedLegacy === 'string' && joinedLegacy) ||
+                        'Someone';
+                    if (joined !== collaboratorDisplayName) {
+                        toast.success(`${joined} joined the room.`);
                     }
                     setClients(clients);
                     socketRef.current?.emit(ACTIONS.SYNC_CODE, {
@@ -131,7 +135,7 @@ const EditorPage = () => {
 
             socket.on(
                 ACTIONS.DISCONNECTED,
-                ({ socketId, username }) => {
+                ({ socketId }) => {
                     playLeaveChime();
                     if (typingClearTimeoutsRef.current[socketId]) {
                         clearTimeout(typingClearTimeoutsRef.current[socketId]);
@@ -210,7 +214,13 @@ const EditorPage = () => {
             }
             setMySocketId(null);
         };
-    }, [roomId, collaboratorUsername, reactNavigator, isLoaded]);
+    }, [
+        roomId,
+        collaboratorDisplayName,
+        collaboratorImageUrl,
+        reactNavigator,
+        isLoaded,
+    ]);
 
     async function copyInviteLink() {
         const inviteUrl = `${window.location.origin}/room/${roomId}`;
@@ -252,7 +262,9 @@ const EditorPage = () => {
         setFollowSocketId(next);
         // Toast must not run inside setState updater — React Strict Mode runs that twice in dev.
         if (next) {
-            toast.success(`Following ${client.username}`);
+            toast.success(
+                `Following ${client.displayName || client.username || 'teammate'}`
+            );
         }
     };
 
@@ -518,7 +530,12 @@ const EditorPage = () => {
                                     }}
                                 >
                                     <Client
-                                        username={client.username}
+                                        displayName={
+                                            client.displayName ||
+                                            client.username ||
+                                            'Guest'
+                                        }
+                                        imageUrl={client.imageUrl || ''}
                                         isTyping={isTyping}
                                         isFollowing={isFollowing}
                                         isSelf={isSelf}
@@ -584,7 +601,7 @@ const EditorPage = () => {
                         ref={editorRef}
                         socketRef={socketRef}
                         roomId={roomId}
-                        username={collaboratorUsername}
+                        displayName={collaboratorDisplayName}
                         language={language}
                         fontSize={fontSize}
                         onLanguageChange={setLanguage}

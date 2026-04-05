@@ -19,17 +19,36 @@ app.use((req, res, next) => {
     res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
 
+/** @type {Record<string, { displayName: string; imageUrl: string }>} */
 const userSocketMap = {};
 /** @type {Map<string, string>} */
 const roomPins = new Map();
 
+function sanitizeDisplayName(displayName, username) {
+    if (typeof displayName === 'string' && displayName.trim()) {
+        return displayName.trim().slice(0, 80);
+    }
+    if (typeof username === 'string' && username.trim()) {
+        return username.trim().slice(0, 80);
+    }
+    return 'Guest';
+}
+
+function sanitizeImageUrl(url) {
+    if (typeof url !== 'string' || !url.trim()) return '';
+    const t = url.trim().slice(0, 2048);
+    if (!/^https?:\/\//i.test(t)) return '';
+    return t;
+}
+
 function getAllConnectedClients(roomId) {
-    // Map
     return Array.from(io.sockets.adapter.rooms.get(roomId) || []).map(
         (socketId) => {
+            const info = userSocketMap[socketId];
             return {
                 socketId,
-                username: userSocketMap[socketId],
+                displayName: info?.displayName ?? 'Guest',
+                imageUrl: info?.imageUrl ?? '',
             };
         }
     );
@@ -38,8 +57,10 @@ function getAllConnectedClients(roomId) {
 io.on('connection', (socket) => {
     console.log('socket connected', socket.id);
 
-    socket.on(ACTIONS.JOIN, ({ roomId, username }) => {
-        userSocketMap[socket.id] = username;
+    socket.on(ACTIONS.JOIN, ({ roomId, displayName, imageUrl, username }) => {
+        const name = sanitizeDisplayName(displayName, username);
+        const img = sanitizeImageUrl(imageUrl);
+        userSocketMap[socket.id] = { displayName: name, imageUrl: img };
         socket.join(roomId);
         socket.emit(ACTIONS.ROOM_PIN_SYNC, {
             note: roomPins.get(roomId) || '',
@@ -48,7 +69,7 @@ io.on('connection', (socket) => {
         clients.forEach(({ socketId }) => {
             io.to(socketId).emit(ACTIONS.JOINED, {
                 clients,
-                username,
+                displayName: name,
                 socketId: socket.id,
             });
         });
@@ -77,11 +98,13 @@ io.on('connection', (socket) => {
     });
 
     socket.on(ACTIONS.CURSOR_POSITION, ({ roomId, cursor }) => {
-        // Broadcast cursor position to all other clients in the room
+        const info = userSocketMap[socket.id];
+        const label = info?.displayName ?? 'User';
         socket.in(roomId).emit(ACTIONS.CURSOR_UPDATE, {
             socketId: socket.id,
             cursor,
-            username: userSocketMap[socket.id],
+            displayName: label,
+            username: label,
         });
     });
 
@@ -110,9 +133,12 @@ io.on('connection', (socket) => {
     socket.on('disconnecting', () => {
         const rooms = [...socket.rooms];
         rooms.forEach((roomId) => {
+            const info = userSocketMap[socket.id];
+            const label = info?.displayName ?? 'Someone';
             socket.in(roomId).emit(ACTIONS.DISCONNECTED, {
                 socketId: socket.id,
-                username: userSocketMap[socket.id],
+                displayName: label,
+                username: label,
             });
         });
         delete userSocketMap[socket.id];

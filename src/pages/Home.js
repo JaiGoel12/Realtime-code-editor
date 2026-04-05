@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { v4 as uuidV4 } from 'uuid';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { useUser, UserButton } from '@clerk/clerk-react';
 import ThemeToggle from '../components/ThemeToggle';
+import { getCollaboratorDisplayName } from '../utils/collaboratorProfile';
 
 const Home = () => {
     const navigate = useNavigate();
@@ -11,11 +12,16 @@ const Home = () => {
     const [roomId, setRoomId] = useState('');
     const [username, setUsername] = useState('');
 
+    const clerkDisplayName = useMemo(
+        () => (user ? getCollaboratorDisplayName(user, undefined) : ''),
+        [user]
+    );
+
     useEffect(() => {
-        if (user && user.username) {
-            setUsername(user.username);
+        if (user && clerkDisplayName) {
+            setUsername(clerkDisplayName);
         }
-    }, [user]);
+    }, [user, clerkDisplayName]);
 
     const createNewRoom = (e) => {
         e.preventDefault();
@@ -25,14 +31,20 @@ const Home = () => {
     };
 
     const joinRoom = () => {
-        if (!roomId || !username) {
-            toast.error('ROOM ID & username is required');
+        const label = (user ? clerkDisplayName || username : username).trim();
+        if (!roomId || !label) {
+            toast.error(
+                user
+                    ? 'Room ID is required'
+                    : 'Room ID and display name are required'
+            );
             return;
         }
 
         navigate(`/editor/${roomId}`, {
             state: {
-                username,
+                username: label,
+                displayName: label,
             },
         });
     };

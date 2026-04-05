@@ -994,6 +994,15 @@
     min-width: 0;
 }
 
+.cs-client-avatar-img {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    object-fit: cover;
+    flex-shrink: 0;
+    background: rgba(138, 180, 248, 0.12);
+}
+
 /* Focus / Zen — full-width editor, sidebar hidden */
 .cs-editor-root--zen .cs-editor-sidebar {
     display: none;
