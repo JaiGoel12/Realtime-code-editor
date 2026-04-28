@@ -13,6 +13,7 @@ const io = new Server(server, {
         credentials: true
     }
 });
+
  
 app.use(express.static('build'));
 app.use((req, res, next) => {
