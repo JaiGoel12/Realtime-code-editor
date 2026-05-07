@@ -93,8 +93,6 @@ io.on('connection', (socket) => {
         if (t && r) kind = 'replace';
         else if (t) kind = 'insert';
         else if (r) kind = 'delete';
-        const rawPreview = t.slice(0, 72) || (r ? `(removed ${r.length} chars)` : '');
-        const preview = rawPreview.replace(/\n/g, ' ↵ ');
 
         // Broadcast incremental change to all other clients in the room
         socket.in(roomId).emit(ACTIONS.CODE_CHANGE, {
@@ -112,7 +110,6 @@ io.on('connection', (socket) => {
             fromLine: from.line,
             toLine: to.line,
             kind,
-            preview,
         });
     });
 

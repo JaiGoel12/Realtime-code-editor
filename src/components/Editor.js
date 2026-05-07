@@ -60,7 +60,16 @@ const Editor = React.forwardRef(
                 editorRef.current.setValue(value);
                 isRemoteChangeRef.current = false;
             }
-        }
+        },
+        getLine: (line) => {
+            if (!editorRef.current) return '';
+            if (typeof line !== 'number' || line < 0) return '';
+            try {
+                return editorRef.current.getLine(line) ?? '';
+            } catch {
+                return '';
+            }
+        },
     }));
 
     useEffect(() => {

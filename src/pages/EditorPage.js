@@ -70,9 +70,6 @@ function mergeEditEntries(head, incoming) {
     ) {
         return null;
     }
-    const p0 = typeof head.preview === 'string' ? head.preview : '';
-    const p1 = typeof incoming.preview === 'string' ? incoming.preview : '';
-    const preview = (p0 + p1).slice(0, 140);
     const kind =
         head.kind === incoming.kind ? head.kind : 'edit';
     return {
@@ -82,7 +79,6 @@ function mergeEditEntries(head, incoming) {
         fromLine: Math.min(head.fromLine, incoming.fromLine),
         toLine: Math.max(head.toLine, incoming.toLine),
         kind,
-        preview: preview || undefined,
         _key: head._key,
     };
 }
@@ -664,11 +660,13 @@ const EditorPage = () => {
                                                     {e.kind}
                                                 </span>
                                             </span>
-                                            {e.preview ? (
-                                                <span className="cs-edit-history-preview-inline">
-                                                    {e.preview}
-                                                </span>
-                                            ) : null}
+                                            <span className="cs-edit-history-preview-inline">
+                                                {editorRef.current?.getLine
+                                                    ? editorRef.current.getLine(
+                                                          e.anchorLine
+                                                      )
+                                                    : ''}
+                                            </span>
                                         </li>
                                     ))
                                 )}
