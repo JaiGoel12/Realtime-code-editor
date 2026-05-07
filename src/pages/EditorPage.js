@@ -14,7 +14,6 @@ import {
     playJoinChime,
     playLeaveChime,
 } from '../utils/sounds';
-import { renderRoomPinHtml } from '../utils/pinNote';
 import {
     getCollaboratorDisplayName,
     getCollaboratorImageUrl,
@@ -25,6 +24,83 @@ import {
     useNavigate,
     useParams,
 } from 'react-router-dom';
+
+const MAX_EDIT_LOG = 80;
+/** Merge rapid keystrokes from the same user on nearby lines into one entry. */
+const EDIT_MERGE_MS = 2400;
+
+function formatEditTimeShort(iso) {
+    try {
+        return new Date(iso).toLocaleTimeString(undefined, {
+            timeStyle: 'short',
+        });
+    } catch {
+        return '';
+    }
+}
+
+function editLineRangeLabel(fromLine, toLine) {
+    const a = (typeof fromLine === 'number' ? fromLine : 0) + 1;
+    const b = (typeof toLine === 'number' ? toLine : 0) + 1;
+    return a === b ? `Line ${a}` : `Lines ${a}–${b}`;
+}
+
+function lineSpansClose(aFrom, aTo, bFrom, bTo) {
+    const a0 = Math.min(aFrom, aTo);
+    const a1 = Math.max(aFrom, aTo);
+    const b0 = Math.min(bFrom, bTo);
+    const b1 = Math.max(bFrom, bTo);
+    return b0 <= a1 + 1 && b1 >= a0 - 1;
+}
+
+function mergeEditEntries(head, incoming) {
+    const t0 = new Date(head.editedAt).getTime();
+    const t1 = new Date(incoming.editedAt).getTime();
+    if (Number.isNaN(t0) || Number.isNaN(t1) || t1 - t0 > EDIT_MERGE_MS) {
+        return null;
+    }
+    if (head.socketId !== incoming.socketId) return null;
+    if (
+        !lineSpansClose(
+            head.fromLine,
+            head.toLine,
+            incoming.fromLine,
+            incoming.toLine
+        )
+    ) {
+        return null;
+    }
+    const p0 = typeof head.preview === 'string' ? head.preview : '';
+    const p1 = typeof incoming.preview === 'string' ? incoming.preview : '';
+    const preview = (p0 + p1).slice(0, 140);
+    const kind =
+        head.kind === incoming.kind ? head.kind : 'edit';
+    return {
+        ...incoming,
+        displayName: incoming.displayName || head.displayName,
+        editedAt: incoming.editedAt,
+        fromLine: Math.min(head.fromLine, incoming.fromLine),
+        toLine: Math.max(head.toLine, incoming.toLine),
+        kind,
+        preview: preview || undefined,
+        _key: head._key,
+    };
+}
+
+function appendEditLog(prev, payload) {
+    const base = {
+        ...payload,
+        _key: `${payload.editedAt}:${payload.socketId}:${Math.random().toString(36).slice(2, 11)}`,
+    };
+    const head = prev[0];
+    if (head) {
+        const merged = mergeEditEntries(head, base);
+        if (merged) {
+            return [merged, ...prev.slice(1)].slice(0, MAX_EDIT_LOG);
+        }
+    }
+    return [base, ...prev].slice(0, MAX_EDIT_LOG);
+}
 
 const EditorPage = () => {
     const socketRef = useRef(null);
@@ -57,9 +133,27 @@ const EditorPage = () => {
     const [soundsEnabled, setSoundsEnabled] = useState(() =>
         getSoundsEnabled()
     );
-    const [roomPin, setRoomPin] = useState('');
-    const [pinInput, setPinInput] = useState('');
-    const pinFocusRef = useRef(false);
+    const [editLog, setEditLog] = useState([]);
+    const [editHistoryOpen, setEditHistoryOpen] = useState(false);
+
+    const lineActivityRows = useMemo(() => {
+        const best = new Map();
+        for (const e of editLog) {
+            const anchor = Math.min(
+                typeof e.fromLine === 'number' ? e.fromLine : 0,
+                typeof e.toLine === 'number' ? e.toLine : 0
+            );
+            const prev = best.get(anchor);
+            const t = new Date(e.editedAt).getTime();
+            const pt = prev ? new Date(prev.editedAt).getTime() : -1;
+            if (!prev || t >= pt) {
+                best.set(anchor, { ...e, anchorLine: anchor });
+            }
+        }
+        return Array.from(best.values()).sort(
+            (a, b) => a.anchorLine - b.anchorLine
+        );
+    }, [editLog]);
 
     useEffect(() => {
         followSocketIdRef.current = followSocketId;
@@ -182,12 +276,13 @@ const EditorPage = () => {
                 scheduleTypingClear(socketId);
             });
 
-            socket.on(ACTIONS.ROOM_PIN_SYNC, ({ note }) => {
-                const n = typeof note === 'string' ? note : '';
-                setRoomPin(n);
-                if (!pinFocusRef.current) {
-                    setPinInput(n);
-                }
+            socket.on(ACTIONS.EDIT_LOG, (payload) => {
+                if (!payload || typeof payload.editedAt !== 'string') return;
+                setEditLog((prev) => appendEditLog(prev, payload));
+            });
+
+            socket.on(ACTIONS.CLEAR_CODE, () => {
+                setEditLog([]);
             });
         };
         init().catch((e) => console.error('Socket init failed', e));
@@ -206,7 +301,8 @@ const EditorPage = () => {
                 s.off(ACTIONS.DISCONNECTED);
                 s.off(ACTIONS.LANGUAGE_CHANGE);
                 s.off(ACTIONS.TYPING);
-                s.off(ACTIONS.ROOM_PIN_SYNC);
+                s.off(ACTIONS.EDIT_LOG);
+                s.off(ACTIONS.CLEAR_CODE);
                 s.off('connect_error');
                 s.off('connect_failed');
                 s.disconnect();
@@ -235,19 +331,6 @@ const EditorPage = () => {
 
     function leaveRoom() {
         reactNavigator('/');
-    }
-
-    function pushRoomPin() {
-        const cleaned = pinInput.replace(/\s+/g, ' ').trim().slice(0, 200);
-        if (!socketRef.current?.connected) {
-            toast.error('Not connected — pin not sent');
-            return;
-        }
-        socketRef.current.emit(ACTIONS.ROOM_PIN_SET, {
-            roomId,
-            note: cleaned,
-        });
-        toast.success('Room pin updated for everyone');
     }
 
     const handleCodeChange = (newCode) => {
@@ -456,45 +539,6 @@ const EditorPage = () => {
                     </div>
                 </div>
 
-                <div className="cs-room-pin" aria-label="Room pin note">
-                    <div className="cs-room-pin-head">
-                        <span className="cs-room-pin-label">Room pin</span>
-                        <span className="cs-room-pin-hint">One line, **bold** · `code`</span>
-                    </div>
-                    {roomPin ? (
-                        <p
-                            className="cs-room-pin-preview"
-                            dangerouslySetInnerHTML={{
-                                __html: renderRoomPinHtml(roomPin),
-                            }}
-                        />
-                    ) : (
-                        <p className="cs-room-pin-empty">No pin yet — set a goal for the room.</p>
-                    )}
-                    <textarea
-                        className="cs-room-pin-input"
-                        rows={2}
-                        maxLength={200}
-                        value={pinInput}
-                        onChange={(e) => setPinInput(e.target.value)}
-                        onFocus={() => {
-                            pinFocusRef.current = true;
-                        }}
-                        onBlur={() => {
-                            pinFocusRef.current = false;
-                        }}
-                        placeholder='e.g. Goal: **fix auth** in `login.ts`'
-                        spellCheck="false"
-                    />
-                    <button
-                        type="button"
-                        className="cs-btn cs-btn--pin"
-                        onClick={pushRoomPin}
-                    >
-                        Sync to room
-                    </button>
-                </div>
-
                 <div className="cs-sidebar-main">
                     <p className="cs-sidebar-follow-hint">
                         Tap a teammate to follow their cursor —{' '}
@@ -544,6 +588,93 @@ const EditorPage = () => {
                             );
                         })}
                     </div>
+                </div>
+
+                <div
+                    className={
+                        'cs-edit-history' +
+                        (editHistoryOpen ? ' cs-edit-history--open' : '')
+                    }
+                >
+                    <button
+                        type="button"
+                        className="cs-edit-history-toggle"
+                        aria-expanded={editHistoryOpen}
+                        onClick={() => setEditHistoryOpen((o) => !o)}
+                    >
+                        <span className="cs-edit-history-toggle-label">
+                            Line activity
+                        </span>
+                        <span className="cs-edit-history-toggle-meta">
+                            {lineActivityRows.length === 0
+                                ? 'No edits yet'
+                                : `${lineActivityRows.length} line${
+                                      lineActivityRows.length === 1 ? '' : 's'
+                                  } · tap to ${editHistoryOpen ? 'hide' : 'show'}`}
+                        </span>
+                        <span
+                            className="cs-edit-history-chevron"
+                            aria-hidden
+                        >
+                            {editHistoryOpen ? '▾' : '▸'}
+                        </span>
+                    </button>
+                    {editHistoryOpen ? (
+                        <>
+                            <p className="cs-edit-history-sub">
+                                Latest change per line · bursts of typing are
+                                grouped · server time
+                            </p>
+                            <ul
+                                className="cs-edit-history-list cs-edit-history-list--lines"
+                                aria-label="Latest edit per line"
+                            >
+                                {lineActivityRows.length === 0 ? (
+                                    <li className="cs-edit-history-empty">
+                                        Edits will appear here by line as you
+                                        work.
+                                    </li>
+                                ) : (
+                                    lineActivityRows.map((e) => (
+                                        <li
+                                            key={e.anchorLine}
+                                            className="cs-edit-history-line-row"
+                                        >
+                                            <span className="cs-edit-history-line-num">
+                                                {editLineRangeLabel(
+                                                    e.fromLine,
+                                                    e.toLine
+                                                )}
+                                            </span>
+                                            <span className="cs-edit-history-line-main">
+                                                <span className="cs-edit-history-who">
+                                                    {e.displayName || 'Guest'}
+                                                </span>
+                                                <time
+                                                    className="cs-edit-history-time"
+                                                    dateTime={e.editedAt}
+                                                >
+                                                    {formatEditTimeShort(
+                                                        e.editedAt
+                                                    )}
+                                                </time>
+                                                <span
+                                                    className="cs-edit-history-kind cs-edit-history-kind--inline"
+                                                >
+                                                    {e.kind}
+                                                </span>
+                                            </span>
+                                            {e.preview ? (
+                                                <span className="cs-edit-history-preview-inline">
+                                                    {e.preview}
+                                                </span>
+                                            ) : null}
+                                        </li>
+                                    ))
+                                )}
+                            </ul>
+                        </>
+                    ) : null}
                 </div>
 
                 <div className="cs-sidebar-footer">

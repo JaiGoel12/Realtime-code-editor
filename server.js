@@ -22,8 +22,6 @@ app.use((req, res, next) => {
 
 /** @type {Record<string, { displayName: string; imageUrl: string }>} */
 const userSocketMap = {};
-/** @type {Map<string, string>} */
-const roomPins = new Map();
 
 function sanitizeDisplayName(displayName, username) {
     if (typeof displayName === 'string' && displayName.trim()) {
@@ -63,9 +61,6 @@ io.on('connection', (socket) => {
         const img = sanitizeImageUrl(imageUrl);
         userSocketMap[socket.id] = { displayName: name, imageUrl: img };
         socket.join(roomId);
-        socket.emit(ACTIONS.ROOM_PIN_SYNC, {
-            note: roomPins.get(roomId) || '',
-        });
         const clients = getAllConnectedClients(roomId);
         clients.forEach(({ socketId }) => {
             io.to(socketId).emit(ACTIONS.JOINED, {
@@ -77,12 +72,47 @@ io.on('connection', (socket) => {
     });
 
     socket.on(ACTIONS.CODE_CHANGE, ({ roomId, from, to, text, removed }) => {
+        if (!roomId || typeof roomId !== 'string' || !socket.rooms.has(roomId)) {
+            return;
+        }
+        if (
+            !from ||
+            typeof from.line !== 'number' ||
+            typeof from.ch !== 'number' ||
+            !to ||
+            typeof to.line !== 'number' ||
+            typeof to.ch !== 'number'
+        ) {
+            return;
+        }
+        const t = typeof text === 'string' ? text : '';
+        const r = typeof removed === 'string' ? removed : '';
+        const info = userSocketMap[socket.id];
+        const displayName = info?.displayName ?? 'Guest';
+        let kind = 'edit';
+        if (t && r) kind = 'replace';
+        else if (t) kind = 'insert';
+        else if (r) kind = 'delete';
+        const rawPreview = t.slice(0, 72) || (r ? `(removed ${r.length} chars)` : '');
+        const preview = rawPreview.replace(/\n/g, ' ↵ ');
+
         // Broadcast incremental change to all other clients in the room
         socket.in(roomId).emit(ACTIONS.CODE_CHANGE, {
             from,
             to,
             text,
             removed,
+        });
+
+        // Everyone in the room (including author): trusted who / when / line range
+        io.to(roomId).emit(ACTIONS.EDIT_LOG, {
+            displayName,
+            socketId: socket.id,
+            editedAt: new Date().toISOString(),
+            fromLine: from.line,
+            toLine: to.line,
+            kind,
+            preview,
         });
     });
 
@@ -119,16 +149,6 @@ io.on('connection', (socket) => {
         socket.in(roomId).emit(ACTIONS.LANGUAGE_CHANGE, {
             newLanguage,
         });
-    });
-
-    socket.on(ACTIONS.ROOM_PIN_SET, ({ roomId, note }) => {
-        if (!roomId) return;
-        const cleaned =
-            typeof note === 'string'
-                ? note.replace(/\s+/g, ' ').trim().slice(0, 200)
-                : '';
-        roomPins.set(roomId, cleaned);
-        io.to(roomId).emit(ACTIONS.ROOM_PIN_SYNC, { note: cleaned });
     });
 
     socket.on('disconnecting', () => {

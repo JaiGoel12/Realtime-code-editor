@@ -217,106 +217,181 @@
     letter-spacing: 0.06em;
 }
 
-/* Room pin (shared goal line) */
-.cs-room-pin {
-    margin: 0 0.85rem 0.5rem;
-    padding: 0.75rem 0.85rem 0.85rem;
-    border-radius: 16px;
-    background: rgba(138, 180, 248, 0.06);
-    border: 1px solid rgba(138, 180, 248, 0.14);
+/* Line activity (collapsible, below squad — one row per line) */
+.cs-edit-history {
+    margin: 0 1rem 0.45rem;
+    flex-shrink: 0;
+    border-radius: var(--cs-radius-md, 12px);
+    background: rgba(6, 10, 20, 0.4);
+    border: 1px solid rgba(138, 180, 248, 0.1);
+    min-height: 0;
+}
+
+.cs-edit-history--open {
+    padding: 0 0.5rem 0.5rem;
+    max-height: min(200px, 26vh);
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
 }
 
-.cs-room-pin-head {
+.cs-edit-history-toggle {
     display: flex;
-    flex-direction: column;
-    gap: 0.15rem;
-}
-
-.cs-room-pin-label {
-    font-size: 0.62rem;
-    font-weight: 800;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    color: var(--cs-cyan);
-}
-
-.cs-room-pin-hint {
-    font-size: 0.62rem;
-    color: var(--cs-text-muted);
-    letter-spacing: 0.02em;
-}
-
-.cs-room-pin-preview {
-    margin: 0;
-    font-size: 0.8rem;
-    line-height: 1.45;
-    color: var(--cs-text);
-    word-break: break-word;
-}
-
-.cs-room-pin-preview strong {
-    font-weight: 700;
-    color: #fff;
-}
-
-.cs-room-pin-code {
-    font-family: ui-monospace, 'SF Mono', monospace;
-    font-size: 0.78em;
-    padding: 0.08em 0.28em;
-    border-radius: 6px;
-    background: rgba(90, 208, 255, 0.12);
-    border: 1px solid rgba(90, 208, 255, 0.22);
-    color: var(--cs-cyan);
-}
-
-.cs-room-pin-empty {
-    margin: 0;
-    font-size: 0.72rem;
-    color: var(--cs-text-muted);
-    font-style: italic;
-}
-
-.cs-room-pin-input {
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem 0.5rem;
     width: 100%;
-    box-sizing: border-box;
     margin: 0;
     padding: 0.5rem 0.6rem;
-    border-radius: 12px;
-    border: 1px solid rgba(138, 180, 248, 0.2);
-    background: rgba(3, 6, 14, 0.55);
-    color: var(--cs-text);
-    font-family: var(--cs-font-ui);
-    font-size: 0.78rem;
+    border: none;
+    border-radius: var(--cs-radius-md, 12px);
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.cs-edit-history-toggle:hover {
+    background: rgba(138, 180, 248, 0.08);
+}
+
+.cs-edit-history-toggle-label {
+    font-size: 0.65rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--cs-text-muted);
+}
+
+.cs-edit-history-toggle-meta {
+    flex: 1;
+    min-width: 0;
+    font-size: 0.6rem;
+    color: var(--cs-text-muted);
+    opacity: 0.9;
+}
+
+.cs-edit-history-chevron {
+    font-size: 0.65rem;
+    color: rgba(90, 208, 255, 0.85);
+    flex-shrink: 0;
+}
+
+.cs-edit-history-sub {
+    margin: 0 0.35rem 0.4rem 0.5rem;
+    font-size: 0.58rem;
     line-height: 1.4;
-    resize: vertical;
-    min-height: 2.6rem;
+    color: var(--cs-text-muted);
+    opacity: 0.88;
 }
 
-.cs-room-pin-input::placeholder {
-    color: rgba(138, 180, 248, 0.35);
+.cs-edit-history-list {
+    list-style: none;
+    margin: 0;
+    padding: 0 0.15rem 0.15rem 0.35rem;
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(138, 180, 248, 0.22) transparent;
 }
 
-.cs-room-pin-input:focus {
-    outline: none;
-    border-color: rgba(90, 208, 255, 0.45);
-    box-shadow: 0 0 0 1px rgba(90, 208, 255, 0.15);
+.cs-edit-history-list--lines {
+    padding-left: 0.25rem;
 }
 
-.cs-btn--pin {
-    padding: 0.55rem 0.75rem;
-    font-size: 0.75rem;
+.cs-edit-history-empty {
+    margin: 0;
+    padding: 0.2rem 0.15rem 0.35rem;
+    font-size: 0.62rem;
+    color: var(--cs-text-muted);
+    line-height: 1.45;
+}
+
+.cs-edit-history-time {
+    font-variant-numeric: tabular-nums;
+    color: var(--cs-text-muted);
+    font-size: 0.58rem;
+    flex-shrink: 0;
+}
+
+.cs-edit-history-kind {
+    font-size: 0.58rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: rgba(90, 208, 255, 0.95);
+    padding: 0.08rem 0.35rem;
+    border-radius: 6px;
+    background: rgba(90, 208, 255, 0.1);
+    border: 1px solid rgba(90, 208, 255, 0.2);
+}
+
+.cs-edit-history-kind--inline {
+    font-size: 0.52rem;
+    padding: 0.04rem 0.28rem;
+}
+
+.cs-edit-history-who {
+    font-weight: 700;
     color: var(--cs-text);
-    background: rgba(138, 180, 248, 0.12);
-    border: 1px solid rgba(138, 180, 248, 0.28);
-    box-shadow: none;
+    font-size: 0.64rem;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
-.cs-btn--pin:hover {
-    border-color: rgba(138, 180, 248, 0.45);
-    background: rgba(138, 180, 248, 0.18);
+.cs-edit-history-line-row {
+    display: grid;
+    grid-template-columns: minmax(4.2rem, auto) 1fr;
+    grid-template-areas:
+        'line main'
+        'line prev';
+    gap: 0.1rem 0.5rem;
+    padding: 0.35rem 0.15rem;
+    border-top: 1px solid rgba(138, 180, 248, 0.08);
+    font-size: 0.62rem;
+    align-items: start;
+}
+
+.cs-edit-history-line-row:first-child {
+    border-top: none;
+    padding-top: 0.2rem;
+}
+
+.cs-edit-history-line-num {
+    grid-area: line;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: rgba(197, 168, 255, 0.95);
+    padding-top: 0.12rem;
+}
+
+.cs-edit-history-line-main {
+    grid-area: main;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem 0.5rem;
+    min-width: 0;
+}
+
+.cs-edit-history-preview-inline {
+    grid-area: prev;
+    grid-column: 2;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.55rem;
+    color: var(--cs-text-muted);
+    word-break: break-word;
+    line-height: 1.35;
+    max-height: 2.5em;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
 }
 
 .cs-sound-toggle {
@@ -1157,18 +1232,17 @@ html[data-theme='light'] .cs-sidebar-brand img {
     box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12);
 }
 
-html[data-theme='light'] .cs-room-pin {
-    background: rgba(21, 88, 192, 0.05);
+html[data-theme='light'] .cs-edit-history {
+    background: rgba(255, 255, 255, 0.55);
     border-color: rgba(21, 88, 192, 0.12);
 }
 
-html[data-theme='light'] .cs-room-pin-input {
-    background: rgba(255, 255, 255, 0.92);
-    border-color: rgba(21, 88, 192, 0.14);
+html[data-theme='light'] .cs-edit-history-line-row {
+    border-top-color: rgba(21, 88, 192, 0.1);
 }
 
-html[data-theme='light'] .cs-room-pin-preview strong {
-    color: var(--cs-text);
+html[data-theme='light'] .cs-edit-history-toggle:hover {
+    background: rgba(21, 88, 192, 0.06);
 }
 
 html[data-theme='light'] .cs-collab-row {
